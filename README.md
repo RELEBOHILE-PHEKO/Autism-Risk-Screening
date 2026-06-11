@@ -6,7 +6,7 @@ Research prototype for early autism risk screening in young children using a mul
 
 ## What is in this repo
 
-- `notebook/autism_screening_pipeline (1).ipynb` contains the full training and analysis workflow.
+- `notebook/autism_screening_pipeline .ipynb` contains the full training and analysis workflow.
 - `app/app.py` is a Streamlit screening app.
 - `app/predictor.py` loads the trained models and performs inference.
 - `data/raw/` contains the local datasets used by the notebook.
