@@ -5,6 +5,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib
 
 try:
     import shap
@@ -14,7 +15,6 @@ except ImportError:
 
 from predictor import get_predictor, QCHAT_ITEMS, RESPONSE_OPTIONS
 
-# Configure Streamlit page
 st.set_page_config(
     page_title="Autism Risk Screening",
     page_icon=None,
@@ -22,7 +22,141 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Sidebar inputs
+#Global styles
+# All colours use CSS variables so they adapt to Streamlit light/dark theme.
+
+st.markdown("""
+<style>
+/* ── tokens ── */
+:root {
+    --brand:        #4f6ef7;
+    --brand-muted:  rgba(79, 110, 247, 0.12);
+    --border:       rgba(128, 128, 128, 0.2);
+    --radius:       10px;
+    --radius-sm:    6px;
+}
+
+/* ── stat cards ── */
+.stat-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1rem;
+    text-align: center;
+    background: transparent;
+}
+.stat-number {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--brand);
+    line-height: 1.1;
+}
+.stat-label {
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+    opacity: 0.65;
+}
+
+/* ── step cards ── */
+.step-card {
+    border-left: 3px solid var(--brand);
+    padding: 0.75rem 1rem;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    margin-bottom: 0.6rem;
+    background: var(--brand-muted);
+}
+.step-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--brand);
+    text-transform: uppercase;
+}
+.step-text {
+    font-size: 0.92rem;
+    margin-top: 0.15rem;
+    /* inherits Streamlit body colour — safe in dark + light */
+}
+
+/* ── data source block ── */
+.source-block {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+    margin-bottom: 0.8rem;
+    background: transparent;
+}
+.source-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--brand);
+    margin-bottom: 0.3rem;
+}
+.source-body {
+    font-size: 0.88rem;
+    opacity: 0.8;
+    line-height: 1.55;
+}
+
+/* ── limitation box ── */
+.limit-box {
+    border: 1px solid rgba(255, 180, 50, 0.4);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+    background: rgba(255, 180, 50, 0.07);
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+
+/* ── hero banner ── */
+.hero {
+    border-left: 4px solid var(--brand);
+    padding: 1.2rem 1.4rem;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: var(--brand-muted);
+    margin-bottom: 1.6rem;
+}
+.hero-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--brand);
+    margin: 0 0 0.3rem 0;
+}
+.hero-sub {
+    font-size: 0.93rem;
+    opacity: 0.75;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ── risk meter ── */
+.risk-meter-wrap {
+    margin: 0.6rem 0 1.2rem;
+}
+.risk-track {
+    height: 10px;
+    border-radius: 999px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+}
+.risk-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+/* ── fairness table ── */
+.stDataFrame { border-radius: var(--radius); overflow: hidden; }
+
+/* ── sidebar tweaks ── */
+section[data-testid="stSidebar"] .stCaption { opacity: 0.6; }
+</style>
+""", unsafe_allow_html=True)
+
+
+#  Sidebar 
 def render_sidebar():
     st.sidebar.header("Child Information")
     age_months = st.sidebar.slider("Age (months)", min_value=18, max_value=36, value=24)
@@ -39,7 +173,8 @@ def render_sidebar():
 
     return age_months, sex, stunted, anaemic, no_caregiver, rural
 
-# Q-CHAT-10 questionnaire form
+
+#  Q-CHAT form 
 def render_qchat_form():
     st.subheader("Q-CHAT-10 Responses")
     st.caption("Select the response that best describes the child's typical behaviour.")
@@ -58,7 +193,8 @@ def render_qchat_form():
                 )
     return responses
 
-# Results panel
+
+# Results 
 def render_results(result: dict, responses: dict):
     prob    = result["prob_calibrated"]
     at_risk = result["at_risk"]
@@ -69,38 +205,57 @@ def render_results(result: dict, responses: dict):
     if result["demo_mode"]:
         st.warning("Models not loaded. Showing illustrative results only.")
 
+    # Risk banner
     if at_risk:
         st.error("Screening Result: At Risk")
     else:
         st.success("Screening Result: Not At Risk")
 
+    # Metric row
     col1, col2, col3 = st.columns(3)
     col1.metric("Risk Probability",   f"{prob:.1%}")
     col2.metric("Decision Threshold", f"{result['threshold']:.2f}")
     col3.metric("Classification",     "At Risk" if at_risk else "Not At Risk")
 
-    st.info(result.get("validation_note", "Model validation details are unavailable."))
+    st.info(result.get("validation_note", "Model validation details unavailable."))
 
-    st.markdown("#### Risk Probability")
-    st.progress(prob, text=f"{prob:.1%}")
+    # Risk meter
+    pct   = int(prob * 100)
+    color = "#e74c3c" if at_risk else "#2ecc71"
+    st.markdown("**Risk probability**")
+    st.markdown(f"""
+    <div class="risk-meter-wrap">
+        <div class="risk-track">
+            <div class="risk-fill" style="width:{pct}%; background:{color};"></div>
+        </div>
+        <div style="font-size:0.8rem; opacity:0.6; margin-top:4px;">{pct}%</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # SHAP feature contributions
-    st.markdown("#### Feature Contributions")
+    st.markdown("#### Feature contributions")
     predictor = get_predictor()
     if SHAP_AVAILABLE and predictor.models_loaded:
         try:
-            X_beh      = predictor.encode_responses(responses)
-            explainer  = shap.TreeExplainer(predictor.model_beh)
-            shap_vals  = explainer.shap_values(X_beh)
-            vals       = shap_vals[0] if isinstance(shap_vals, list) else shap_vals[0]
+            X_beh     = predictor.encode_responses(responses)
+            explainer = shap.TreeExplainer(predictor.model_beh)
+            shap_vals = explainer.shap_values(X_beh)
+            vals      = shap_vals[0] if isinstance(shap_vals, list) else shap_vals[0]
             feat_names = [f"Q{i}" for i in range(1, 11)]
 
             fig, ax = plt.subplots(figsize=(8, 3))
-            colours = ["#e74c3c" if v > 0 else "#2ecc71" for v in vals]
-            ax.barh(feat_names, vals, color=colours)
-            ax.axvline(0, color="black", linewidth=0.8)
-            ax.set_xlabel("SHAP Value (positive = towards At Risk)")
-            ax.set_title("Feature contribution to prediction")
+            fig.patch.set_alpha(0)
+            ax.set_facecolor("none")
+            colours = ["#e74c3c" if v > 0 else "#4f6ef7" for v in vals]
+            ax.barh(feat_names, vals, color=colours, height=0.6)
+            ax.axvline(0, color="gray", linewidth=0.8, alpha=0.5)
+            ax.set_xlabel("SHAP value  (positive = towards At Risk)",
+                          color="gray", fontsize=9)
+            ax.tick_params(colors="gray", labelsize=9)
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+            ax.set_title("Feature contribution to this prediction",
+                         color="gray", fontsize=10, pad=8)
             st.pyplot(fig)
             plt.close(fig)
         except Exception as e:
@@ -109,7 +264,7 @@ def render_results(result: dict, responses: dict):
         st.info("SHAP explanations will appear once the model has been trained.")
 
     # Cultural notes
-    st.markdown("#### Cultural Notes")
+    st.markdown("#### Cultural notes")
     st.caption(
         "The following items involve speech or language behaviours. "
         "Responses may be influenced by linguistic and cultural differences "
@@ -121,129 +276,146 @@ def render_results(result: dict, responses: dict):
 
     st.divider()
     st.caption(
-        "Research prototype. This tool provides screening results only "
-        "and should not be used as a medical diagnosis."
+        "Research prototype only. This tool does not constitute a clinical diagnosis. "
+        "Results should always be interpreted alongside professional assessment."
     )
 
-# About page
+
+#  About 
 def render_about():
     st.markdown("""
-        <style>
-        .about-hero {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 2.5rem 2rem;
-            border-radius: 16px;
-            color: white;
-            margin-bottom: 2rem;
-        }
-        .about-hero h2 { color: white; margin: 0 0 0.5rem 0; font-size: 1.8rem; }
-        .about-hero p  { color: rgba(255,255,255,0.88); margin: 0; font-size: 1.05rem; }
-        .stat-card {
-            background: #f8f9ff;
-            border: 1px solid #e0e4ff;
-            border-radius: 12px;
-            padding: 1.2rem 1rem;
-            text-align: center;
-        }
-        .stat-number { font-size: 2rem; font-weight: 700; color: #667eea; }
-        .stat-label  { font-size: 0.85rem; color: #666; margin-top: 0.2rem; }
-        .step-card {
-            background: #ffffff;
-            border-left: 4px solid #667eea;
-            padding: 0.9rem 1.2rem;
-            border-radius: 0 10px 10px 0;
-            margin-bottom: 0.8rem;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-        }
-        .step-num  { font-weight: 700; color: #667eea; font-size: 0.8rem; letter-spacing: 1px; }
-        .step-text { color: #333; margin-top: 0.2rem; font-size: 0.95rem; }
-        .limit-box {
-            background: #fff8f0;
-            border: 1px solid #ffd0a0;
-            border-radius: 10px;
-            padding: 1rem 1.2rem;
-        }
-        </style>
+    <div class="hero">
+        <div class="hero-title">Autism Risk Screening</div>
+        <p class="hero-sub">
+            A machine learning screening tool for early autism risk identification
+            in young children, designed with the Southern African context in mind.
+            Trained on Q-CHAT-10 data from three countries and calibrated using
+            the Lesotho Demographic and Health Survey 2023–24.
+        </p>
+    </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-        <div class="about-hero">
-            <h2>Autism Risk Screening</h2>
-            <p>A machine learning tool for early autism risk identification in young children,
-            designed with the Southern African context in mind.</p>
-        </div>
-    """, unsafe_allow_html=True)
-
+    # Stat cards
     c1, c2, c3, c4 = st.columns(4)
     stats = [
         ("1,601", "Training records"),
         ("10",    "Screening items"),
         ("18–36", "Age range (months)"),
-        ("2",     "Model inputs"),
+        ("0.710", "AUROC on test set"),
     ]
     for col, (num, label) in zip([c1, c2, c3, c4], stats):
         col.markdown(f"""
-            <div class="stat-card">
-                <div class="stat-number">{num}</div>
-                <div class="stat-label">{label}</div>
-            </div>
+        <div class="stat-card">
+            <div class="stat-number">{num}</div>
+            <div class="stat-label">{label}</div>
+        </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-
     left, right = st.columns(2)
 
     with left:
-        st.markdown("#### How It Works")
+        st.markdown("#### How it works")
         steps = [
-            ("STEP 1", "Caregiver fills in the Q-CHAT-10 questionnaire"),
-            ("STEP 2", "Child age, sex, and health indicators are recorded"),
-            ("STEP 3", "Two XGBoost models process behavioural and demographic inputs separately"),
-            ("STEP 4", "Outputs are combined using late fusion"),
-            ("STEP 5", "Threshold is adjusted using Lesotho DHS health indicators"),
-            ("STEP 6", "A risk score and screening recommendation are returned"),
+            ("Step 1", "Caregiver fills in the Q-CHAT-10 questionnaire"),
+            ("Step 2", "Child age, sex, and health indicators are recorded"),
+            ("Step 3", "Two XGBoost models process behavioural and demographic inputs"),
+            ("Step 4", "Outputs are combined using late fusion averaging"),
+            ("Step 5", "Threshold is adjusted using Lesotho DHS health indicators"),
+            ("Step 6", "A risk score and screening recommendation are returned"),
         ]
         for num, text in steps:
             st.markdown(f"""
-                <div class="step-card">
-                    <div class="step-num">{num}</div>
-                    <div class="step-text">{text}</div>
-                </div>
+            <div class="step-card">
+                <div class="step-num">{num}</div>
+                <div class="step-text">{text}</div>
+            </div>
             """, unsafe_allow_html=True)
 
     with right:
-        st.markdown("#### Data Sources")
-        st.markdown("""
-**Q-CHAT-10 Training Data**
-- Unified toddler screening dataset (Abbadi & Thabtah, 2025)
-- 1,601 records filtered to ages 18–36 months
+        st.markdown("#### Data sources")
 
-**Test Set**
-- Polish clinical dataset (Niedźwiecka et al., 2020)
-- Q-CHAT-25, items 1–10 used
-    - Used as the test set for text-based result summaries
-
-**Calibration**
-- Lesotho Demographic and Health Survey 2023–24
-- South African Road to Health developmental milestones
-
-**Cultural Alignment**
-- SADiLaR Sesotho sa Leboa child speech corpus
-        """)
+        sources = [
+            ("Q-CHAT-10 training data",
+             "Unified toddler screening dataset (Abbadi & Thabtah, 2025). "
+             "1,601 records filtered to ages 18–36 months from New Zealand, "
+             "Saudi Arabia, and Poland."),
+            ("Test set",
+             "Polish clinical dataset (Niedźwiecka et al., 2020). "
+             "252 records with confirmed ASD and typically developing cases."),
+            ("Threshold calibration",
+             "Lesotho Demographic and Health Survey 2023–24 (LSKR81DT). "
+             "Stunting, anaemia, caregiver presence, and rural residence indicators."),
+            ("Cultural alignment",
+             "SADiLaR Sesotho sa Leboa child speech corpus. "
+             "Naturalistic therapist-child interaction recordings used for "
+             "linguistic analysis of speech-related Q-CHAT items."),
+        ]
+        for title, body in sources:
+            st.markdown(f"""
+            <div class="source-block">
+                <div class="source-title">{title}</div>
+                <div class="source-body">{body}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
         st.markdown("#### Limitations")
         st.markdown("""
-            <div class="limit-box">
-            This is a screening tool — not a clinical diagnosis.<br><br>
-            The system has not yet been validated with children or caregivers in Lesotho.
-            Results should always be interpreted alongside professional clinical assessment.
-            </div>
+        <div class="limit-box">
+            This is a screening tool and does not constitute a clinical diagnosis.
+            The system has not been validated with children or caregivers in Lesotho.
+            Results must be interpreted alongside professional clinical assessment.
+            The SADiLaR corpus represents Sesotho sa Leboa, which is closely related
+            to but not identical to Sesotho spoken in Lesotho.
+        </div>
         """, unsafe_allow_html=True)
 
-# Main
+
+# Fairness tab 
+def render_fairness():
+    st.markdown("### Fairness evaluation")
+    st.markdown(
+        "Subgroup performance analysis across age and sex. "
+        "Overall F1 = 0.708. A disparity is flagged where subgroup F1 "
+        "falls more than 0.05 below the overall."
+    )
+
+    fairness_path = "outputs/fairness/subgroup_results.csv"
+    if os.path.exists(fairness_path):
+        df = pd.read_csv(fairness_path)
+        st.dataframe(df, use_container_width=True)
+
+        # Simple bar chart using matplotlib — transparent background for dark mode
+        fig, ax = plt.subplots(figsize=(7, 2.5))
+        fig.patch.set_alpha(0)
+        ax.set_facecolor("none")
+        colours = ["#e74c3c" if f < 0.658 else "#4f6ef7"
+                   for f in df["f1"]]
+        ax.barh(df["subgroup"], df["f1"], color=colours, height=0.5)
+        ax.axvline(0.708, color="gray", linewidth=1, linestyle="--",
+                   label="Overall F1 = 0.708", alpha=0.7)
+        ax.set_xlabel("F1 score", color="gray", fontsize=9)
+        ax.tick_params(colors="gray", labelsize=9)
+        ax.legend(fontsize=8, labelcolor="gray",
+                  framealpha=0, loc="lower right")
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        st.pyplot(fig)
+        plt.close(fig)
+    else:
+        st.info(
+            "Fairness evaluation results will appear here after "
+            "model evaluation has been completed."
+        )
+
+
+# Main 
 def main():
     st.title("Autism Risk Screening")
-    st.markdown("Screening tool for developmental risk assessment in young children.")
+    st.markdown(
+        "Early developmental risk assessment for children aged 18–36 months. "
+        "Designed for use in Southern African low-resource contexts."
+    )
 
     tab_screen, tab_about, tab_fairness = st.tabs(["Screening", "About", "Fairness"])
 
@@ -268,19 +440,8 @@ def main():
         render_about()
 
     with tab_fairness:
-        st.markdown("### Fairness Evaluation")
-        st.markdown(
-            "Subgroup performance analysis across age and sex."
-        )
-        fairness_path = "outputs/fairness/subgroup_results.csv"
-        if os.path.exists(fairness_path):
-            df = pd.read_csv(fairness_path)
-            st.dataframe(df, use_container_width=True)
-        else:
-            st.info(
-                "Fairness evaluation results will be displayed "
-                "after model evaluation has been completed."
-            )
+        render_fairness()
+
 
 if __name__ == "__main__":
     main()
