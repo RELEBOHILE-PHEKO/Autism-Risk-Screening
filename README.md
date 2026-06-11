@@ -57,7 +57,7 @@ SHAP is treated as optional. If the local environment cannot import it cleanly, 
 │   └── processed/
 ├── models/
 ├── notebook/
-│   └── autism_screening_pipeline (1).ipynb
+│   └── autism_screening_pipeline.ipynb
 ├── outputs/
 │   ├── alignment/
 │   ├── evaluation/
