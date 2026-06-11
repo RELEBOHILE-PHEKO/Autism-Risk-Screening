@@ -1,0 +1,38 @@
+sample_id,transcript_path,audio_path,has_transcript,has_audio
+S3005,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S3005.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S3005.WAV,True,True
+S3006_1,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S3006_1.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S3006_1.WAV,True,True
+S3006_2,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S3006_2.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S3006_2.WAV,True,True
+S3007,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S3007.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S3007.WAV,True,True
+S3101,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S3101.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S3101.WAV,True,True
+S3102_1,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S3102_1.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S3102_1.WAV,True,True
+S3102_2,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S3102_2.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S3102_2.WAV,True,True
+S3104,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S3104.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S3104.WAV,True,True
+S4004_1,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S4004_1.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S4004_1.WAV,True,True
+S4004_2,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S4004_2.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S4004_2.WAV,True,True
+S4006_1,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S4006_1.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S4006_1.WAV,True,True
+S4006_2,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S4006_2.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S4006_2.WAV,True,True
+S4009,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S4009.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S4009.WAV,True,True
+S4103_1,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S4103_1.eaf,,True,False
+S4103_2,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S4103_2.eaf,,True,False
+S4107,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S4107.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S4107.WAV,True,True
+S4108,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S4108.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S4108.WAV,True,True
+S5005,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S5005.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S5005.WAV,True,True
+S5006_1,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S5006_1.eaf,,True,False
+S5006_2,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S5006_2.eaf,,True,False
+S5009,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S5009.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S5009.WAV,True,True
+S5101,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S5101.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S5101.WAV,True,True
+S5107,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S5107.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S5107.WAV,True,True
+S5108,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S5108.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S5108.WAV,True,True
+S6001,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S6001.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S6001.WAV,True,True
+S6006,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S6006.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S6006.WAV,True,True
+S6011,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S6011.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S6011.WAV,True,True
+S6107,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S6107.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S6107.WAV,True,True
+S6108,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S6108.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S6108.WAV,True,True
+S6109_1,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S6109_1.eaf,,True,False
+S6109_2,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S6109_2.eaf,,True,False
+S7007,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S7007.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S7007.WAV,True,True
+S7008,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S7008.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S7008.WAV,True,True
+S7010,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S7010.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S7010.WAV,True,True
+S7103,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S7103.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S7103.WAV,True,True
+S7104,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S7104.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S7104.WAV,True,True
+S7109,data\raw\SADiLaR\Sesotho sa Leboa - Orthographic Transcriptions\S7109.eaf,data\raw\SADiLaR\Sesotho sa Leboa Recordings\S7109.WAV,True,True
