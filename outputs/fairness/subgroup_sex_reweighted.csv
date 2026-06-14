@@ -1,0 +1,3 @@
+subgroup,n,accuracy,precision,recall,f1,auroc,dimension
+Female,95,0.505,0.447,0.872,0.591,0.69,sex_reweighted
+Male,157,0.65,0.652,0.917,0.762,0.739,sex_reweighted
