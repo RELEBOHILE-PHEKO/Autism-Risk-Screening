@@ -301,7 +301,7 @@ def render_about():
         ("1,601", "Training records"),
         ("10",    "Screening items"),
         ("18–36", "Age range (months)"),
-        ("0.710", "AUROC on test set"),
+        ("0.719", "AUROC on test set"),
     ]
     for col, (num, label) in zip([c1, c2, c3, c4], stats):
         col.markdown(f"""
