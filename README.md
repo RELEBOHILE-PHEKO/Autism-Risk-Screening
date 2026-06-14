@@ -32,8 +32,9 @@ The notebook currently does the following:
 4. Combines the two models with late fusion.
 5. Recalibrates the decision threshold using the local DHS CSV at `data/raw/dhs/LSKR81FL.csv`.
 6. Runs a SADiLaR speech-corpus audit from `data/raw/SADiLaR/`.
-7. Produces fairness and evaluation outputs under `outputs/`.
-8. Saves trained artifacts to `models/`.
+7. Acoustic Feature extraction
+8. Produces fairness and evaluation outputs under `outputs/`.
+9. Saves trained artifacts to `models/`.
 
 SHAP is treated as optional. If the local environment cannot import it cleanly, the notebook skips explainability instead of failing.
 
