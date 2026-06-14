@@ -1,4 +1,4 @@
-item,alignment_score,flag_level,note
-Q1 — Response to name,0.61,Moderate,Prosodic response patterns in Sesotho may differ from training population norms
-Q8 — Typical first words,0.54,High,Sesotho phonological patterns affect expected first-word profiles
-Q9 — Gesture use,0.58,Moderate,Gesture conventions are culturally influenced in Southern African contexts
+item,question,alignment_score,flag_level,pitch_mean_hz,pitch_range_hz,speech_rate_zcr,prosodic_rhythm_cv,pause_freq
+Q1,Does your child look at you when you call his/her name?,0.423,MODERATE,388.59,399.96,0.0634,2.6005,0.7229
+Q8,Would you describe your child's first words as typical?,0.305,MODERATE,388.59,399.96,0.0634,2.6005,0.7229
+Q9,Does your child use simple gestures (e.g. wave goodbye)?,0.575,HIGH,388.59,399.96,0.0634,2.6005,0.7229
