@@ -1,6 +1,6 @@
 # Autism Risk Screening
-video link:
-https://autism-risk-screening.streamlit.app/
+video link: https://youtu.be/l2zPPSuSnXA
+Deployed URL- https://autism-risk-screening.streamlit.app/
 
 
 Research prototype for early autism risk screening in young children using a multimodal pipeline built around Q-CHAT-10 responses, demographic features, Lesotho DHS contextual calibration, and a local SADiLaR speech-corpus audit.
@@ -55,9 +55,9 @@ SHAP is treated as optional. If the local environment cannot import it cleanly, 
 │   │   │   ├── LSKR81FL.MAP
 │   │   │   └── LSKR81FL_v14.dta
 │   │   └── SADiLaR/
-│   │       ├── Sesotho sa Leboa - Orthographic Transcriptions/
-│   │       └── Sesotho sa Leboa Recordings/
-│   └── processed/
+│           ├── Sesotho sa Leboa - Orthographic Transcriptions/
+│           └── Sesotho sa Leboa Recordings/
+│   
 ├── models/
 ├── notebook/
 │   └── autism_screening_pipeline.ipynb
@@ -120,7 +120,8 @@ Saved model artifacts are already present in `models/`:
 - `models/xgb_behavioural.joblib`
 - `models/xgb_demographic.joblib`
 - `models/threshold.joblib`
-
+- `meta_model.joblib`
+  
 ## Requirements
 
 Install dependencies with:
@@ -149,7 +150,7 @@ The project currently depends on:
 Open the notebook in VS Code or Jupyter:
 
 ```bash
-jupyter notebook "notebook/autism_screening_pipeline (1).ipynb"
+jupyter notebook "notebook/autism_screening_pipeline .ipynb"
 ```
 
 Or open it directly in VS Code and run the cells in order.
@@ -164,7 +165,6 @@ The app uses the saved models in `models/`. If the models are missing, it falls 
 
 ## Notes
 
-- `data/processed/` is currently empty.
 - The notebook uses the local DHS CSV first and only falls back to the local `.dta` if needed.
 - The local SADiLaR corpus is partially paired: 37 transcripts and 31 recordings, with 6 transcripts currently missing audio matches.
 - The project is a screening prototype, not a diagnostic device.
