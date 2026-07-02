@@ -1,0 +1,2 @@
+dimension,status,reason,dhs_rural_prev,dhs_urban_prev,recommended_action
+geography,not_evaluated,Polish test set carries no geographic labels,0.7132075471698113,0.2867924528301887,Primary data collection in Lesotho with v025 residence variable
