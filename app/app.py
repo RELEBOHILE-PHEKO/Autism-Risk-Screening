@@ -301,7 +301,7 @@ def render_about():
         ("1,601", "Training records"),
         ("10",    "Screening items"),
         ("18–36", "Age range (months)"),
-        ("0.719", "AUROC on test set"),
+        ("0.814", "AUROC on test set"),
     ]
     for col, (num, label) in zip([c1, c2, c3, c4], stats):
         col.markdown(f"""
@@ -376,7 +376,7 @@ def render_fairness():
     st.markdown("### Fairness evaluation")
     st.markdown(
         "Subgroup performance analysis across age and sex. "
-        "Overall F1 = 0.708. A disparity is flagged where subgroup F1 "
+        "Overall F1 = 0.768. A disparity is flagged where subgroup F1 "
         "falls more than 0.05 below the overall."
     )
 
@@ -389,11 +389,11 @@ def render_fairness():
         fig, ax = plt.subplots(figsize=(7, 2.5))
         fig.patch.set_alpha(0)
         ax.set_facecolor("none")
-        colours = ["#e74c3c" if f < 0.658 else "#4f6ef7"
+        colours = ["#e74c3c" if f < 0.718 else "#4f6ef7"
                    for f in df["f1"]]
         ax.barh(df["subgroup"], df["f1"], color=colours, height=0.5)
-        ax.axvline(0.708, color="gray", linewidth=1, linestyle="--",
-                   label="Overall F1 = 0.708", alpha=0.7)
+        ax.axvline(0.768, color="gray", linewidth=1, linestyle="--",
+                   label="Overall F1 = 0.768", alpha=0.7)
         ax.set_xlabel("F1 score", color="gray", fontsize=9)
         ax.tick_params(colors="gray", labelsize=9)
         ax.legend(fontsize=8, labelcolor="gray",

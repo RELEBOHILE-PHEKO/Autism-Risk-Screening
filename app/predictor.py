@@ -168,7 +168,7 @@ class AutismPredictor:
             "validation_note": (
                 "Trained on Q-CHAT-10 data (NZ + Saudi Arabia, n=1,601). "
                 "Tested on Polish clinical dataset (n=252). "
-                "AUROC = 0.719. Threshold calibrated using Lesotho DHS 2023-24."
+                "AUROC = 0.814. Threshold calibrated using Lesotho DHS 2023-24."
             ),
             "demo_mode": demo_mode,
         }
