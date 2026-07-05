@@ -26,14 +26,32 @@ st.set_page_config(
 # All colours use CSS variables so they adapt to Streamlit light/dark theme.
 
 st.markdown("""
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ── tokens ── */
+/* ── tokens (Lesotho screening identity: deep navy + savanna gold) ── */
 :root {
-    --brand:        #4f6ef7;
-    --brand-muted:  rgba(79, 110, 247, 0.12);
-    --border:       rgba(128, 128, 128, 0.2);
-    --radius:       10px;
-    --radius-sm:    6px;
+    --brand:        #1A4E6B;
+    --brand-light:  #2A6E93;
+    --brand-muted:  rgba(26, 78, 107, 0.10);
+    --accent:       #C9943A;
+    --accent-light: #F0C060;
+    --risk-low:     #1A7A4A;
+    --risk-mid:     #D4760A;
+    --risk-high:    #B03030;
+    --ink:          #1C2B3A;
+    --muted-ink:    #5A6E7F;
+    --border:       #D8E2EA;
+    --radius:       14px;
+    --radius-sm:    9px;
+    --display-font: 'Fraunces', Georgia, serif;
+    --body-font:    'Inter', -apple-system, sans-serif;
+}
+
+h1, h2, h3, .hero-title, .gauge-tier-label {
+    font-family: var(--display-font) !important;
+    letter-spacing: -0.01em;
 }
 
 /* ── stat cards ── */
@@ -111,26 +129,136 @@ st.markdown("""
 
 /* ── hero banner ── */
 .hero {
-    border-left: 4px solid var(--brand);
-    padding: 1.2rem 1.4rem;
-    border-radius: 0 var(--radius) var(--radius) 0;
-    background: var(--brand-muted);
-    margin-bottom: 1.6rem;
+    position: relative;
+    overflow: hidden;
+    padding: 1.8rem 1.8rem 1.6rem;
+    border-radius: var(--radius);
+    background: linear-gradient(160deg, var(--brand) 0%, #0F3349 100%);
+    margin-bottom: 1.8rem;
+}
+.hero::before {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: rgba(201,148,58,.16);
+}
+.hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(201,148,58,.18);
+    border: 1px solid rgba(201,148,58,.4);
+    border-radius: 20px;
+    padding: 3px 12px;
+    margin-bottom: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+    position: relative;
+    z-index: 1;
 }
 .hero-title {
-    font-size: 1.35rem;
+    font-size: 1.7rem;
     font-weight: 700;
-    color: var(--brand);
-    margin: 0 0 0.3rem 0;
+    color: #fff;
+    margin: 0 0 0.4rem 0;
+    position: relative;
+    z-index: 1;
+}
+.hero-title em {
+    font-style: normal;
+    color: var(--accent-light);
 }
 .hero-sub {
-    font-size: 0.93rem;
-    opacity: 0.75;
+    font-family: var(--body-font);
+    font-size: 0.95rem;
+    color: rgba(255,255,255,.7);
     margin: 0;
-    line-height: 1.5;
+    line-height: 1.55;
+    position: relative;
+    z-index: 1;
+    max-width: 640px;
 }
 
-/* ── risk meter ── */
+/* ── risk gauge (signature element) ── */
+.gauge-card {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    background: linear-gradient(160deg, var(--brand) 0%, #0F3349 100%);
+    border-radius: var(--radius);
+    padding: 1.6rem 1.8rem;
+    margin: 1rem 0 1.4rem;
+}
+.gauge-svg-wrap { flex-shrink: 0; }
+.gauge-readout { flex: 1; min-width: 180px; }
+.gauge-score {
+    font-family: var(--display-font);
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+}
+.gauge-tier-label {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 20px;
+}
+.gauge-tier-label.low    { background: rgba(26,122,74,.25);  color: #7BE0A8; }
+.gauge-tier-label.mid    { background: rgba(212,118,10,.25); color: var(--accent-light); }
+.gauge-tier-label.high   { background: rgba(176,48,48,.28);  color: #F5A3A3; }
+
+/* ── risk banner (replaces default st.error/success for tier control) ── */
+.risk-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0.9rem 1.1rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.8rem;
+}
+.risk-banner.low  { background: rgba(26,122,74,.10);  color: var(--risk-low);  border: 1px solid rgba(26,122,74,.3); }
+.risk-banner.mid  { background: rgba(212,118,10,.10); color: var(--risk-mid);  border: 1px solid rgba(212,118,10,.3); }
+.risk-banner.high { background: rgba(176,48,48,.10);  color: var(--risk-high); border: 1px solid rgba(176,48,48,.3); }
+
+/* ── cultural flag cards ── */
+.flag-card {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.6rem;
+}
+.flag-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.flag-card-name { font-size: 0.88rem; font-weight: 700; }
+.flag-pill {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 20px;
+    background: rgba(212,118,10,.14);
+    color: var(--risk-mid);
+}
+.flag-card-desc { font-size: 0.85rem; opacity: 0.75; line-height: 1.5; }
+
+/* ── risk meter (legacy, kept for compatibility) ── */
 .risk-meter-wrap {
     margin: 0.6rem 0 1.2rem;
 }
@@ -161,6 +289,8 @@ def render_sidebar():
     st.sidebar.header("Child Information")
     age_months = st.sidebar.slider("Age (months)", min_value=18, max_value=36, value=24)
     sex        = st.sidebar.radio("Sex", ["Male", "Female"])
+    jaundice    = st.sidebar.checkbox("History of jaundice at birth")
+    family_asd  = st.sidebar.checkbox("Immediate family member with ASD")
 
     st.sidebar.divider()
     st.sidebar.header("Contextual Indicators")
@@ -171,7 +301,7 @@ def render_sidebar():
     no_caregiver = st.sidebar.checkbox("Neither biological parent present in household")
     rural        = st.sidebar.checkbox("Rural residence")
 
-    return age_months, sex, stunted, anaemic, no_caregiver, rural
+    return age_months, sex, jaundice, family_asd, stunted, anaemic, no_caregiver, rural
 
 
 #  Q-CHAT form 
@@ -194,10 +324,47 @@ def render_qchat_form():
     return responses
 
 
+#  Risk gauge (signature element) 
+def _risk_tier(prob: float):
+    if prob < 0.35:
+        return "low", "LOW RISK", "#1A7A4A"
+    elif prob < 0.60:
+        return "mid", "MODERATE RISK — MONITOR", "#D4760A"
+    else:
+        return "high", "AT RISK — REFER", "#B03030"
+
+
+def render_gauge_svg(prob: float) -> str:
+    tier, _, _ = _risk_tier(prob)
+    # semicircular arc: full arc length ~ 283 (matches r=90 half-circumference)
+    arc_len = 283
+    offset = arc_len * (1 - prob)
+    return f"""
+    <svg viewBox="0 0 220 120" width="220" height="120" style="overflow:visible;">
+        <path d="M 20 110 A 90 90 0 0 1 200 110"
+              fill="none" stroke="rgba(255,255,255,.15)" stroke-width="14" stroke-linecap="round"/>
+        <path d="M 20 110 A 90 90 0 0 1 200 110"
+              fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round"
+              stroke-dasharray="{arc_len}" stroke-dashoffset="{offset}"/>
+        <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#1A7A4A"/>
+                <stop offset="50%" stop-color="#D4760A"/>
+                <stop offset="100%" stop-color="#B03030"/>
+            </linearGradient>
+        </defs>
+        <text x="14" y="128" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">Low</text>
+        <text x="96" y="108" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">Mid</text>
+        <text x="185" y="128" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">High</text>
+    </svg>
+    """
+
+
 # Results 
 def render_results(result: dict, responses: dict):
     prob    = result["prob_calibrated"]
     at_risk = result["at_risk"]
+    tier, tier_label, _ = _risk_tier(prob)
 
     st.divider()
     st.subheader("Screening Results")
@@ -205,11 +372,26 @@ def render_results(result: dict, responses: dict):
     if result["demo_mode"]:
         st.warning("Models not loaded. Showing illustrative results only.")
 
-    # Risk banner
-    if at_risk:
-        st.error("Screening Result: At Risk")
-    else:
-        st.success("Screening Result: Not At Risk")
+    # Signature element: semicircular risk gauge
+    st.markdown(f"""
+    <div class="gauge-card">
+        <div class="gauge-svg-wrap">{render_gauge_svg(prob)}</div>
+        <div class="gauge-readout">
+            <div class="gauge-score">{prob:.2f}</div>
+            <span class="gauge-tier-label {tier}">{tier_label}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Risk banner (tier-coded, not generic red/green)
+    banner_text = {
+        "low":  "Screening result: Not at risk",
+        "mid":  "Screening result: Moderate risk — recommend monitoring",
+        "high": "Screening result: At risk — recommend referral for follow-up",
+    }[tier]
+    st.markdown(f"""
+    <div class="risk-banner {tier}">{banner_text}</div>
+    """, unsafe_allow_html=True)
 
     # Metric row
     col1, col2, col3 = st.columns(3)
@@ -218,19 +400,6 @@ def render_results(result: dict, responses: dict):
     col3.metric("Classification",     "At Risk" if at_risk else "Not At Risk")
 
     st.info(result.get("validation_note", "Model validation details unavailable."))
-
-    # Risk meter
-    pct   = int(prob * 100)
-    color = "#e74c3c" if at_risk else "#2ecc71"
-    st.markdown("**Risk probability**")
-    st.markdown(f"""
-    <div class="risk-meter-wrap">
-        <div class="risk-track">
-            <div class="risk-fill" style="width:{pct}%; background:{color};"></div>
-        </div>
-        <div style="font-size:0.8rem; opacity:0.6; margin-top:4px;">{pct}%</div>
-    </div>
-    """, unsafe_allow_html=True)
 
     # SHAP feature contributions
     st.markdown("#### Feature contributions")
@@ -246,7 +415,7 @@ def render_results(result: dict, responses: dict):
             fig, ax = plt.subplots(figsize=(8, 3))
             fig.patch.set_alpha(0)
             ax.set_facecolor("none")
-            colours = ["#e74c3c" if v > 0 else "#4f6ef7" for v in vals]
+            colours = ["#B03030" if v > 0 else "#1A4E6B" for v in vals]
             ax.barh(feat_names, vals, color=colours, height=0.6)
             ax.axvline(0, color="gray", linewidth=0.8, alpha=0.5)
             ax.set_xlabel("SHAP value  (positive = towards At Risk)",
@@ -264,15 +433,22 @@ def render_results(result: dict, responses: dict):
         st.info("SHAP explanations will appear once the model has been trained.")
 
     # Cultural notes
-    st.markdown("#### Cultural notes")
+    st.markdown("#### Cultural alignment — flagged items")
     st.caption(
         "The following items involve speech or language behaviours. "
         "Responses may be influenced by linguistic and cultural differences "
         "in Sesotho-speaking contexts."
     )
     for item_id, info in result["cultural_notes"].items():
-        with st.expander(f"{item_id} — Response: {info['response']}"):
-            st.write(info["note"])
+        st.markdown(f"""
+        <div class="flag-card">
+            <div class="flag-card-top">
+                <span class="flag-card-name">{item_id} — Response: {info['response']}</span>
+                <span class="flag-pill">⚠ Review</span>
+            </div>
+            <div class="flag-card-desc">{info['note']}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.divider()
     st.caption(
@@ -389,7 +565,7 @@ def render_fairness():
         fig, ax = plt.subplots(figsize=(7, 2.5))
         fig.patch.set_alpha(0)
         ax.set_facecolor("none")
-        colours = ["#e74c3c" if f < 0.718 else "#4f6ef7"
+        colours = ["#B03030" if f < 0.718 else "#1A4E6B"
                    for f in df["f1"]]
         ax.barh(df["subgroup"], df["f1"], color=colours, height=0.5)
         ax.axvline(0.768, color="gray", linewidth=1, linestyle="--",
@@ -411,16 +587,22 @@ def render_fairness():
 
 # Main 
 def main():
-    st.title("Autism Risk Screening")
-    st.markdown(
-        "Early developmental risk assessment for children aged 18–36 months. "
-        "Designed for use in Southern African low-resource contexts."
-    )
+    st.markdown("""
+    <div class="hero">
+        <div class="hero-eyebrow">● Research Prototype</div>
+        <div class="hero-title">Early ASD Risk Screening for <em>Southern Africa</em></div>
+        <p class="hero-sub">
+            A context-adapted screening tool for children aged 18–36 months,
+            calibrated using the Lesotho Demographic and Health Survey 2023–24.
+            Not a clinical diagnosis.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
     tab_screen, tab_about, tab_fairness = st.tabs(["Screening", "About", "Fairness"])
 
     with tab_screen:
-        age_months, sex, stunted, anaemic, no_caregiver, rural = render_sidebar()
+        age_months, sex, jaundice, family_asd, stunted, anaemic, no_caregiver, rural = render_sidebar()
         responses = render_qchat_form()
 
         if st.button("Generate Assessment", type="primary", use_container_width=True):
@@ -429,6 +611,8 @@ def main():
                 responses    = responses,
                 age_months   = age_months,
                 sex          = sex,
+                jaundice     = jaundice,
+                family_asd   = family_asd,
                 stunted      = stunted,
                 anaemic      = anaemic,
                 no_caregiver = no_caregiver,

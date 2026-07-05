@@ -92,11 +92,15 @@ class AutismPredictor:
         return np.array(scores, dtype=float).reshape(1, -1)
 
     @staticmethod
-    def encode_demographics(age_months: int, sex: str) -> np.ndarray:
-        # Encode age and sex exactly as used during training
+    def encode_demographics(age_months: int, sex: str,
+                             jaundice: bool = False, family_asd: bool = False) -> np.ndarray:
+        # Encode demographics in the exact column order used during training:
+        # DEM_COLS = ["age_years", "sex", "Jaundice", "Family_ASD"]
         return np.array([[
             age_months / 12.0,
             1 if sex == "Male" else 0,
+            1 if jaundice else 0,
+            1 if family_asd else 0,
         ]], dtype=float)
 
     @staticmethod
@@ -125,11 +129,12 @@ class AutismPredictor:
 
     def predict(self, responses: dict, age_months: int, sex: str,
                 stunted: bool = False, anaemic: bool = False,
-                no_caregiver: bool = False, rural: bool = False) -> dict:
+                no_caregiver: bool = False, rural: bool = False,
+                jaundice: bool = False, family_asd: bool = False) -> dict:
 
         # Prepare behavioural and demographic inputs
         X_beh = self.encode_responses(responses)
-        X_dem = self.encode_demographics(age_months, sex)
+        X_dem = self.encode_demographics(age_months, sex, jaundice, family_asd)
 
         if self.models_loaded:
 
