@@ -48,12 +48,10 @@ st.markdown("""
     --display-font: 'Fraunces', Georgia, serif;
     --body-font:    'Inter', -apple-system, sans-serif;
 }
-
 h1, h2, h3, .hero-title, .gauge-tier-label {
     font-family: var(--display-font) !important;
     letter-spacing: -0.01em;
 }
-
 /* ── stat cards ── */
 .stat-card {
     border: 1px solid var(--border);
@@ -73,7 +71,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label {
     margin-top: 0.3rem;
     opacity: 0.65;
 }
-
 /* ── step cards ── */
 .step-card {
     border-left: 3px solid var(--brand);
@@ -94,7 +91,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label {
     margin-top: 0.15rem;
     /* inherits Streamlit body colour — safe in dark + light */
 }
-
 /* ── data source block ── */
 .source-block {
     border: 1px solid var(--border);
@@ -116,7 +112,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label {
     opacity: 0.8;
     line-height: 1.55;
 }
-
 /* ── limitation box ── */
 .limit-box {
     border: 1px solid rgba(255, 180, 50, 0.4);
@@ -126,7 +121,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label {
     font-size: 0.88rem;
     line-height: 1.6;
 }
-
 /* ── hero banner ── */
 .hero {
     position: relative;
@@ -183,7 +177,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label {
     z-index: 1;
     max-width: 640px;
 }
-
 /* ── risk gauge (signature element) ── */
 .gauge-card {
     display: flex;
@@ -217,7 +210,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label {
 .gauge-tier-label.low    { background: rgba(26,122,74,.25);  color: #7BE0A8; }
 .gauge-tier-label.mid    { background: rgba(212,118,10,.25); color: var(--accent-light); }
 .gauge-tier-label.high   { background: rgba(176,48,48,.28);  color: #F5A3A3; }
-
 /* ── risk banner (replaces default st.error/success for tier control) ── */
 .risk-banner {
     display: flex;
@@ -232,7 +224,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label {
 .risk-banner.low  { background: rgba(26,122,74,.10);  color: var(--risk-low);  border: 1px solid rgba(26,122,74,.3); }
 .risk-banner.mid  { background: rgba(212,118,10,.10); color: var(--risk-mid);  border: 1px solid rgba(212,118,10,.3); }
 .risk-banner.high { background: rgba(176,48,48,.10);  color: var(--risk-high); border: 1px solid rgba(176,48,48,.3); }
-
 /* ── cultural flag cards ── */
 .flag-card {
     background: transparent;
@@ -257,7 +248,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label {
     color: var(--risk-mid);
 }
 .flag-card-desc { font-size: 0.85rem; opacity: 0.75; line-height: 1.5; }
-
 /* ── risk meter (legacy, kept for compatibility) ── */
 .risk-meter-wrap {
     margin: 0.6rem 0 1.2rem;
@@ -274,10 +264,8 @@ h1, h2, h3, .hero-title, .gauge-tier-label {
     border-radius: 999px;
     transition: width 0.4s ease;
 }
-
 /* ── fairness table ── */
 .stDataFrame { border-radius: var(--radius); overflow: hidden; }
-
 /* ── sidebar tweaks ── */
 section[data-testid="stSidebar"] .stCaption { opacity: 0.6; }
 </style>
