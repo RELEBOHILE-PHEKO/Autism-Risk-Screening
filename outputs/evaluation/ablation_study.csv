@@ -1,7 +1,0 @@
-configuration,auroc,f1,recall,precision,delta_f1
-Behavioural only,0.868,0.741,0.615,0.933,-0.024
-Demographic only,0.607,0.663,0.844,0.545,-0.102
-Fused (no calibration),0.809,0.765,0.77,0.759,0.0
-Full pipeline (fusion + calibration),0.809,0.765,0.77,0.759,0.0
-Without SMOTE,0.76,0.735,0.741,0.73,-0.03
-Logistic regression baseline,0.892,0.562,0.4,0.947,-0.203

@@ -1,3 +1,0 @@
-subgroup,n,accuracy,precision,recall,f1,auroc
-Female,95,0.516,0.453,0.872,0.596,0.695
-Male,157,0.643,0.649,0.906,0.757,0.733
