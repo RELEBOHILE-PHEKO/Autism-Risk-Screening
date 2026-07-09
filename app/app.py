@@ -226,107 +226,59 @@ def render_gauge_svg(prob: float) -> str:
     return f"""<svg viewBox="0 0 220 120" width="220" height="120" style="overflow:visible;"><path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="14" stroke-linecap="round"/><path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="{arc_len}" stroke-dashoffset="{offset}"/><defs><linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#1A7A4A"/><stop offset="50%" stop-color="#D4760A"/><stop offset="100%" stop-color="#B03030"/></linearGradient></defs><text x="14" y="128" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">Low</text><text x="96" y="108" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">Mid</text><text x="185" y="128" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">High</text></svg>"""
 
 
-def render_results(result: dict, responses: dict):
-    prob    = result["prob_calibrated"]
-    at_risk = result["at_risk"]
-    tier, tier_label, _ = _risk_tier(prob)
-
-    st.divider()
-    st.subheader("Screening Results")
-
-    if result["demo_mode"]:
-        st.markdown(f'<div class="notice-box warn">{icon("warning", 15)} Models not loaded. Showing illustrative results only.</div>', unsafe_allow_html=True)
-
-    st.markdown(f"""<div class="gauge-card"><div class="gauge-svg-wrap">{render_gauge_svg(prob)}</div><div class="gauge-readout"><div class="gauge-score">{prob:.2f}</div><span class="gauge-tier-label {tier}">{tier_label}</span></div></div>""", unsafe_allow_html=True)
-
-    banner_text = {
-        "low":  "Screening result: Not at risk",
-        "mid":  "Screening result: Moderate risk — recommend monitoring",
-        "high": "Screening result: At risk — recommend referral for follow-up",
-    }[tier]
-    st.markdown(f'<div class="risk-banner {tier}">{banner_text}</div>', unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Risk Probability",   f"{prob:.1%}")
-    col2.metric("Decision Threshold", f"{result['threshold']:.2f}")
-    col3.metric("Classification",     "At Risk" if at_risk else "Not At Risk")
-
-    st.markdown(f'<div class="notice-box info">{icon("info", 15)} {result.get("validation_note", "Model validation details unavailable.")}</div>', unsafe_allow_html=True)
-
-    st.markdown("#### Feature contributions")
-    predictor = get_predictor()
-    if SHAP_AVAILABLE and predictor.models_loaded:
-        try:
-            X_beh     = predictor.encode_responses(responses)
-            explainer = shap.TreeExplainer(predictor.model_beh)
-            shap_vals = explainer.shap_values(X_beh)
-            vals      = shap_vals[0] if isinstance(shap_vals, list) else shap_vals[0]
-            feat_names = [f"Q{i}" for i in range(1, 11)]
-
-            fig, ax = plt.subplots(figsize=(8, 3))
-            fig.patch.set_alpha(0)
-            ax.set_facecolor("none")
-            colours = ["#B03030" if v > 0 else "#1A4E6B" for v in vals]
-            ax.barh(feat_names, vals, color=colours, height=0.6)
-            ax.axvline(0, color="gray", linewidth=0.8, alpha=0.5)
-            ax.set_xlabel("SHAP value  (positive = towards At Risk)", color="gray", fontsize=9)
-            ax.tick_params(colors="gray", labelsize=9)
-            for spine in ax.spines.values():
-                spine.set_visible(False)
-            ax.set_title("Feature contribution to this prediction", color="gray", fontsize=10, pad=8)
-            st.pyplot(fig)
-            plt.close(fig)
-        except Exception as e:
-            st.markdown(f'<div class="notice-box info">{icon("info", 15)} SHAP explanation unavailable: {e}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="notice-box info">{icon("info", 15)} SHAP explanations will appear once the model has been trained.</div>', unsafe_allow_html=True)
-
-    st.markdown("#### Cultural alignment — flagged items")
-    st.caption(
-        "The following items involve speech or language behaviours. "
-        "Responses may be influenced by linguistic and cultural differences "
-        "in Sesotho-speaking contexts."
-    )
-    for item_id, info in result["cultural_notes"].items():
-        st.markdown(f"""<div class="flag-card"><div class="flag-card-top"><span class="flag-card-name">{item_id} — Response: {info['response']}</span><span class="flag-pill">{icon("warning", 12)} Review</span></div><div class="flag-card-desc">{info['note']}</div></div>""", unsafe_allow_html=True)
-
-    st.divider()
-    st.caption(
-        "Research prototype only. This tool does not constitute a clinical diagnosis. "
-        "Results should always be interpreted alongside professional assessment."
-    )
-
-
 def render_comparison_chart():
-    tools = ["Q-CHAT-10\n(standalone)", "M-CHAT-R/F", "Generic AI\nautism quizzes", "This tool"]
-    scores = [1, 1, 1, 5]
-    colours = ["#B0BAC4", "#B0BAC4", "#B0BAC4", "#1A4E6B"]
+    st.markdown("### Capability comparison")
 
-    fig, ax = plt.subplots(figsize=(7.5, 3))
+    capability_df = pd.DataFrame(
+        {
+            "This app": [1, 1, 1, 1, 1],
+            "M-CHAT-R/F (generic use)": [0, 0, 0, 0, 1],
+            "Q-CHAT-10 form only": [0, 1, 0, 0, 1],
+        },
+        index=[
+            "Local threshold calibration",
+            "Behaviour + speech signals",
+            "Per-child explainability",
+            "Subgroup fairness audit",
+            "Free/open access",
+        ],
+    )
+
+    # Compact visual summary (count of capabilities present)
+    counts = capability_df.sum(axis=0).sort_values(ascending=True)
+
+    fig, ax = plt.subplots(figsize=(7, 2.6))
     fig.patch.set_alpha(0)
     ax.set_facecolor("none")
-    bars = ax.barh(tools, scores, color=colours, height=0.55)
-    for bar, score in zip(bars, scores):
-        ax.text(score + 0.08, bar.get_y() + bar.get_height() / 2, str(score),
-                va="center", fontsize=9, color="gray")
-    ax.set_xlim(0, 6)
-    ax.set_xlabel("Capabilities matched (of 5 below)", color="gray", fontsize=9)
+    ax.barh(counts.index, counts.values, color=["#9AA7B2", "#9AA7B2", "#1A4E6B"])
+    ax.set_xlim(0, 5)
+    ax.set_xlabel("Capabilities present (out of 5)", color="gray", fontsize=9)
     ax.tick_params(colors="gray", labelsize=9)
     for spine in ax.spines.values():
         spine.set_visible(False)
-    ax.set_title("Capability comparison against existing screening tools", color="gray", fontsize=10, pad=8)
     st.pyplot(fig)
     plt.close(fig)
 
+    # Human-readable matrix
+    show_df = capability_df.replace({1: "✓", 0: "—"}).T
+    st.dataframe(show_df, use_container_width=True)
+
 
 def render_overview():
-    st.markdown(f"""<div class="hero"><div class="hero-eyebrow">● Research Prototype — Not a Clinical Diagnosis</div><div class="badge-row"><span class="badge-chip">{icon("pin", 12)} Lesotho-calibrated</span><span class="badge-chip">{icon("child", 12)} Ages 18–36 months</span><span class="badge-chip">{icon("speech", 12)} Behaviour + speech signals</span><span class="badge-chip warn">{icon("warning", 12)} Screening only — not diagnostic</span></div><div class="hero-title">Autism Risk Screening for <em>Southern Africa</em></div><p class="hero-sub">This tool estimates a child's likelihood of autism spectrum risk from a short caregiver questionnaire, then recalibrates that estimate using ten real Lesotho Demographic and Health Survey (2023–24) indicators — stunting, anaemia, caregiver presence, rural residence, maternal education, household wealth, antenatal care, birth size, delivery location, and birth spacing — so the result reflects the population it will actually be used in, not just the country the training data came from.</p><div class="pill-row"><div class="pill"><div class="pill-num">1,601</div><div class="pill-label">Training records</div></div><div class="pill"><div class="pill-num">0.814</div><div class="pill-label">AUROC, held-out test</div></div><div class="pill"><div class="pill-num">0.498</div><div class="pill-label">DHS-calibrated threshold</div></div><div class="pill"><div class="pill-num">Free</div><div class="pill-label">Open-source, no cost</div></div></div></div>""", unsafe_allow_html=True)
+    pred = get_predictor()
+    info = pred.runtime_summary()
+
+    auroc_txt = f"{info['reference_auroc']:.3f}" if info["reference_auroc"] is not None else "n/a"
+    thr_txt = f"{info['threshold']:.3f}" if info["threshold"] is not None else "n/a"
+    mode_txt = info["mode"].upper()
+
+    st.markdown(f"""<div class="hero"><div class="hero-eyebrow">● Research Prototype — Not a Clinical Diagnosis</div><div class="badge-row"><span class="badge-chip">{icon("pin", 12)} Lesotho-calibrated</span><span class="badge-chip">{icon("child", 12)} Ages 18–36 months</span><span class="badge-chip">{icon("speech", 12)} Behaviour + speech signals</span><span class="badge-chip warn">{icon("warning", 12)} Screening only — not diagnostic</span></div><div class="hero-title">Autism Risk Screening for <em>Southern Africa</em></div><p class="hero-sub">This tool estimates autism risk using the same saved artifacts produced by the notebook pipeline in your project.</p><div class="pill-row"><div class="pill"><div class="pill-num">1,601</div><div class="pill-label">Training records</div></div><div class="pill"><div class="pill-num">{auroc_txt}</div><div class="pill-label">AUROC (from outputs)</div></div><div class="pill"><div class="pill-num">{thr_txt}</div><div class="pill-label">Loaded threshold</div></div><div class="pill"><div class="pill-num">{mode_txt}</div><div class="pill-label">Artifact mode</div></div></div></div>""", unsafe_allow_html=True)
 
     st.markdown("### Executive summary")
-    st.markdown("""<div class="exec-grid"><div class="exec-card"><div class="exec-card-title">What this does</div><div class="exec-card-body">Combines a Q-CHAT-10 caregiver questionnaire with demographic and health indicators through a late-fusion XGBoost model, producing a calibrated risk score and an explanation of which questions drove it.</div></div><div class="exec-card"><div class="exec-card-title">Geography &amp; data</div><div class="exec-card-body">Trained on toddler screening data from New Zealand, Saudi Arabia, and Poland; tested on a Polish clinical dataset; threshold recalibrated on Lesotho DHS 2023–24 microdata; speech items reviewed against a Sesotho sa Leboa child-speech corpus.</div></div><div class="exec-card"><div class="exec-card-title">Who it's for</div><div class="exec-card-body">Caregivers and community health workers in Lesotho and similar low-resource Southern African settings who need a first-pass screen before a formal clinical referral.</div></div></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="exec-grid"><div class="exec-card"><div class="exec-card-title">What this does</div><div class="exec-card-body">Uses the notebook-aligned behavioural ensemble pipeline (XGBoost + Logistic Regression), applies prior correction and the saved deployment threshold, and returns a calibrated screening risk score.</div></div><div class="exec-card"><div class="exec-card-title">Geography &amp; data</div><div class="exec-card-body">Trained on toddler screening data from New Zealand, Saudi Arabia, and Poland; tested on a Polish clinical dataset; threshold recalibrated on Lesotho DHS 2023–24 microdata; speech items reviewed against a Sesotho sa Leboa child-speech corpus.</div></div><div class="exec-card"><div class="exec-card-title">Who it's for</div><div class="exec-card-body">Caregivers and community health workers in Lesotho and similar low-resource Southern African settings who need a first-pass screen before a formal clinical referral.</div></div></div>""", unsafe_allow_html=True)
 
     st.markdown("### What makes this different")
-    st.markdown("""<div class="unique-grid"><div class="unique-card"><span class="unique-num">01</span><div class="unique-title">Locally recalibrated, not just locally translated</div><div class="unique-body">The decision threshold is shifted using ten real Lesotho health-survey indicators, not a generic cutoff imported from a different population.</div></div><div class="unique-card"><span class="unique-num">02</span><div class="unique-title">Explainable per-child, not a black box</div><div class="unique-body">Every result ships with a SHAP breakdown showing which questionnaire items pushed the score up or down.</div></div><div class="unique-card"><span class="unique-num">03</span><div class="unique-title">Fairness-audited across subgroups</div><div class="unique-body">Performance is evaluated separately by sex and age band. The observed Female/Male F1 gap (0.033) falls within tolerance — reported rather than assumed.</div></div><div class="unique-card"><span class="unique-num">04</span><div class="unique-title">Culturally flagged, not culturally blind</div><div class="unique-body">Speech-related items are cross-checked against a Sesotho sa Leboa child corpus and flagged where a response may reflect language context rather than risk.</div></div></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="unique-grid"><div class="unique-card"><span class="unique-num">01</span><div class="unique-title">Locally recalibrated, not just locally translated</div><div class="unique-body">The decision threshold is shifted using ten real Lesotho health-survey indicators, not a generic cutoff imported from a different population.</div></div><div class="unique-card"><span class="unique-num">02</span><div class="unique-title">Explainable per-child, not a black box</div><div class="unique-body">Every result can be paired with item-level interpretation and flagged culturally sensitive responses.</div></div><div class="unique-card"><span class="unique-num">03</span><div class="unique-title">Fairness-audited across subgroups</div><div class="unique-body">Performance is evaluated separately by sex and age band. The observed Female/Male F1 gap (0.033) falls within tolerance — reported rather than assumed.</div></div><div class="unique-card"><span class="unique-num">04</span><div class="unique-title">Culturally flagged, not culturally blind</div><div class="unique-body">Speech-related items are cross-checked against a Sesotho sa Leboa child corpus and flagged where a response may reflect language context rather than risk.</div></div></div>""", unsafe_allow_html=True)
 
     render_comparison_chart()
     st.caption(
@@ -337,7 +289,7 @@ def render_overview():
     )
 
     st.markdown("### What this tool can — and cannot — do")
-    st.markdown(f"""<div class="safety-grid"><div class="safety-col can"><div class="safety-head">{icon("check", 14)} Can</div><div class="safety-item">• Flag elevated ASD risk for follow-up</div><div class="safety-item">• Adjust for local health context</div><div class="safety-item">• Show why a score was produced</div><div class="safety-item">• Surface culturally sensitive items</div></div><div class="safety-col cant"><div class="safety-head">{icon("cross", 14)} Cannot</div><div class="safety-item">• Diagnose autism</div><div class="safety-item">• Replace a clinical evaluation</div><div class="safety-item">• Account for a child's full medical history</div><div class="safety-item">• Guarantee accuracy for an individual child</div></div></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="safety-grid"><div class="safety-col can"><div class="safety-head">{icon("check", 14)} Can</div><div class="safety-item">• Flag elevated ASD risk for follow-up</div><div class="safety-item">• Use notebook-calibrated thresholding</div><div class="safety-item">• Surface culturally sensitive items</div><div class="safety-item">• Support referral triage in low-resource settings</div></div><div class="safety-col cant"><div class="safety-head">{icon("cross", 14)} Cannot</div><div class="safety-item">• Diagnose autism</div><div class="safety-item">• Replace a clinical evaluation</div><div class="safety-item">• Account for a child's full medical history</div><div class="safety-item">• Guarantee accuracy for an individual child</div></div></div>""", unsafe_allow_html=True)
 
     st.markdown("""<div class="cta-banner"><div><div class="cta-text">Ready to try a screening?</div><div class="cta-sub">Open the Screening tab above — it takes about two minutes.</div></div></div>""", unsafe_allow_html=True)
 

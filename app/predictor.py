@@ -1,9 +1,11 @@
 import os
 import numpy as np
 import joblib
+import pandas as pd
 
 # Directory containing all trained model artifacts
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
+OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "outputs", "evaluation")
 
 # Q-CHAT-10 screening questions displayed in the UI
 QCHAT_ITEMS = [
@@ -51,51 +53,102 @@ CULTURAL_NOTES = {
 }
 
 class AutismPredictor:
-
     def __init__(self):
-        # Model placeholders
         self.model_beh = None
+        self.model_lr = None
         self.model_dem = None
         self.meta_model = None
 
-        # DHS-calibrated decision threshold
         self.threshold = 0.5
+        self.blend_weight = 1.0
+        self.train_prior = None
+        self.target_prior = None
+        self.dhs_params = {"item_weights": {}, "pop_stunting": 0.0, "pop_anaemia": 0.0}
 
         self.models_loaded = False
+        self.model_mode = "demo"  # final | deploy | legacy | demo
+        self.reference_auroc = None
+
         self._load_models()
+        self._load_reference_metrics()
+
+    def _load_reference_metrics(self):
+        fp = os.path.join(OUTPUT_DIR, "benchmark_comparison.csv")
+        if not os.path.exists(fp):
+            return
+        try:
+            df = pd.read_csv(fp)
+            mask = df["Model"].astype(str).str.contains("this study", case=False, na=False)
+            if mask.any():
+                au = pd.to_numeric(df.loc[mask, "AUROC"], errors="coerce").dropna()
+                if len(au):
+                    self.reference_auroc = float(au.iloc[-1])
+        except Exception:
+            pass
+
+    def _load_bundle(self, prefix: str) -> bool:
+        # prefix: "final" or "deploy"
+        req = {
+            "xgb": f"{prefix}_xgb_behavioural.joblib",
+            "lr": f"{prefix}_lr_behavioural.joblib",
+            "w": f"{prefix}_blend_weight.joblib",
+            "prior": f"{prefix}_prior_correction.joblib",
+            "thr": f"{prefix}_threshold.joblib",
+        }
+        paths = {k: os.path.join(MODEL_DIR, v) for k, v in req.items()}
+        if not all(os.path.exists(p) for p in paths.values()):
+            return False
+
+        self.model_beh = joblib.load(paths["xgb"])
+        self.model_lr = joblib.load(paths["lr"])
+        self.blend_weight = float(joblib.load(paths["w"]))
+        prior = joblib.load(paths["prior"])
+        self.train_prior = float(prior["train_prior"])
+        self.target_prior = float(prior["target_prior"])
+        self.threshold = float(joblib.load(paths["thr"]))
+
+        # Optional in deploy, expected in final
+        dhs_fp = os.path.join(MODEL_DIR, f"{prefix}_dhs_comorbidity_params.joblib")
+        if os.path.exists(dhs_fp):
+            self.dhs_params = joblib.load(dhs_fp)
+
+        self.models_loaded = True
+        self.model_mode = prefix
+        return True
 
     def _load_models(self):
-        # Load trained behavioural, demographic and fusion models
         try:
+            if self._load_bundle("final"):
+                return
+            if self._load_bundle("deploy"):
+                return
+
+            # Legacy fallback (older notebook output)
             self.model_beh = joblib.load(os.path.join(MODEL_DIR, "xgb_behavioural.joblib"))
             self.model_dem = joblib.load(os.path.join(MODEL_DIR, "xgb_demographic.joblib"))
             self.meta_model = joblib.load(os.path.join(MODEL_DIR, "meta_model.joblib"))
             self.threshold = float(joblib.load(os.path.join(MODEL_DIR, "threshold.joblib")))
             self.models_loaded = True
+            self.model_mode = "legacy"
+
         except FileNotFoundError:
-            # Fall back to demo mode if model files are unavailable
             self.models_loaded = False
+            self.model_mode = "demo"
 
     @staticmethod
     def encode_responses(responses: dict) -> np.ndarray:
-        # Convert questionnaire responses into binary model features
         scores = []
-
         for item_id, _ in QCHAT_ITEMS:
             raw = responses.get(item_id, "Sometimes")
-
             if item_id in REVERSE_ITEMS:
                 scores.append(RESPONSE_OPTIONS_Q10.get(raw, 1))
             else:
                 scores.append(RESPONSE_OPTIONS.get(raw, 1))
-
         return np.array(scores, dtype=float).reshape(1, -1)
 
     @staticmethod
     def encode_demographics(age_months: int, sex: str,
-                             jaundice: bool = False, family_asd: bool = False) -> np.ndarray:
-        # Encode demographics in the exact column order used during training:
-        # DEM_COLS = ["age_years", "sex", "Jaundice", "Family_ASD"]
+                            jaundice: bool = False, family_asd: bool = False) -> np.ndarray:
         return np.array([[
             age_months / 12.0,
             1 if sex == "Male" else 0,
@@ -104,36 +157,41 @@ class AutismPredictor:
         ]], dtype=float)
 
     @staticmethod
-    def recalibrate_individual(prob: float, stunted: bool, anaemic: bool,
-                               no_caregiver: bool, rural: bool,
-                               low_maternal_edu: bool = False, low_wealth: bool = False,
-                               inadequate_anc: bool = False, small_birth: bool = False,
-                               home_delivery: bool = False, short_interval: bool = False) -> float:
-        # DHS-based contextual risk adjustment (enriched: 10 Lesotho DHS 2023-24 indicators)
-        adjustment = sum([
-            0.03 * stunted,
-            0.02 * anaemic,
-            0.02 * no_caregiver,
-            0.01 * rural,
-            0.015 * low_maternal_edu,
-            0.015 * low_wealth,
-            0.015 * inadequate_anc,
-            0.02 * small_birth,
-            0.01 * home_delivery,
-            0.01 * short_interval,
-        ])
+    def saerens_prior_correction(p: float, train_prior: float, target_prior: float) -> float:
+        p = float(np.clip(p, 1e-6, 1 - 1e-6))
+        num = p * (target_prior / train_prior)
+        den = num + (1 - p) * ((1 - target_prior) / (1 - train_prior))
+        return float(num / den)
 
-        return float(np.clip(prob + adjustment, 0.0, 1.0))
+    def _apply_population_comorbidity_adjustment(self, X_beh: np.ndarray) -> np.ndarray:
+        # Matches notebook final-combined input adjustment (population-level)
+        item_weights = self.dhs_params.get("item_weights", {})
+        p_stunting = float(self.dhs_params.get("pop_stunting", 0.0))
+        p_anaemia = float(self.dhs_params.get("pop_anaemia", 0.0))
+
+        X_adj = X_beh.astype(float).copy()
+        for i in range(X_adj.shape[1]):
+            item = f"Q{i+1}"
+            w = float(item_weights.get(item, 0.0))
+            risk_factor = w * (0.5 * p_stunting + 0.3 * p_anaemia)
+            adjustment = np.clip(risk_factor * 0.3, 0.0, w)
+            X_adj[0, i] = X_adj[0, i] * (1.0 - adjustment)
+        return X_adj
 
     @staticmethod
     def get_cultural_notes(responses: dict) -> dict:
-        # Return cultural notes for speech-related questions
         return {
-            item_id: {
-                "response": responses.get(item_id, "—"),
-                "note": CULTURAL_NOTES[item_id],
-            }
+            item_id: {"response": responses.get(item_id, "—"), "note": CULTURAL_NOTES[item_id]}
             for item_id in SPEECH_ITEMS
+        }
+
+    def runtime_summary(self) -> dict:
+        return {
+            "mode": self.model_mode,
+            "threshold": float(self.threshold),
+            "blend_weight": float(self.blend_weight) if self.model_mode in {"final", "deploy"} else None,
+            "target_prior": self.target_prior,
+            "reference_auroc": self.reference_auroc,
         }
 
     def predict(self, responses: dict, age_months: int, sex: str,
@@ -144,63 +202,69 @@ class AutismPredictor:
                 inadequate_anc: bool = False, small_birth: bool = False,
                 home_delivery: bool = False, short_interval: bool = False) -> dict:
 
-        # Prepare behavioural and demographic inputs
         X_beh = self.encode_responses(responses)
         X_dem = self.encode_demographics(age_months, sex, jaundice, family_asd)
 
-        if self.models_loaded:
+        if self.models_loaded and self.model_mode in {"final", "deploy"}:
+            X_use = self._apply_population_comorbidity_adjustment(X_beh)
+            prob_beh = float(self.model_beh.predict_proba(X_use)[0][1])
+            prob_lr = float(self.model_lr.predict_proba(X_use)[0][1])
 
-            # Behavioural model prediction
-            prob_beh = float(self.model_beh.predict_proba(X_beh)[0][1])
+            prob_blend = float(self.blend_weight * prob_beh + (1.0 - self.blend_weight) * prob_lr)
+            prob_cal = self.saerens_prior_correction(prob_blend, self.train_prior, self.target_prior)
 
-            # Demographic model prediction
-            prob_dem = float(self.model_dem.predict_proba(X_dem)[0][1])
-
-            # Late-fusion stacking using meta-model
-            X_meta = np.array([[prob_beh, prob_dem]])
-            prob_fused = float(self.meta_model.predict_proba(X_meta)[0][1])
-
+            prob_dem = np.nan
+            prob_fused = prob_blend
             demo_mode = False
 
+            validation_note = (
+                f"Using {self.model_mode} saved artifacts: behavioural ensemble + prior correction "
+                f"(threshold={self.threshold:.3f})."
+            )
+
+        elif self.models_loaded and self.model_mode == "legacy":
+            prob_beh = float(self.model_beh.predict_proba(X_beh)[0][1])
+            prob_dem = float(self.model_dem.predict_proba(X_dem)[0][1])
+            X_meta = np.array([[prob_beh, prob_dem]])
+            prob_fused = float(self.meta_model.predict_proba(X_meta)[0][1])
+            prob_cal = prob_fused
+            demo_mode = False
+
+            validation_note = (
+                "Using legacy saved artifacts: behavioural + demographic + fusion meta-model."
+            )
+
         else:
-            # Simplified fallback prediction when models are missing
             prob_beh = float(np.clip(X_beh.sum() / 10.0, 0.0, 1.0))
             prob_dem = 0.30
             prob_fused = (prob_beh + prob_dem) / 2.0
+            prob_cal = prob_fused
             demo_mode = True
 
-        # Apply DHS contextual calibration
-        prob_calibrated = self.recalibrate_individual(
-            prob_fused, stunted, anaemic, no_caregiver, rural,
-            low_maternal_edu, low_wealth, inadequate_anc,
-            small_birth, home_delivery, short_interval
-        )
+            validation_note = "Models not found. Demo mode only."
+
+        if self.reference_auroc is not None:
+            validation_note += f" Reference AUROC from outputs: {self.reference_auroc:.3f}."
 
         return {
             "prob_behavioural": round(prob_beh, 4),
-            "prob_demographic": round(prob_dem, 4),
+            "prob_demographic": None if np.isnan(prob_dem) else round(float(prob_dem), 4),
             "prob_fused": round(prob_fused, 4),
-            "prob_calibrated": round(prob_calibrated, 4),
+            "prob_calibrated": round(prob_cal, 4),
             "threshold": round(self.threshold, 4),
-            "at_risk": bool(prob_calibrated >= self.threshold),
+            "at_risk": bool(prob_cal >= self.threshold),
             "cultural_notes": self.get_cultural_notes(responses),
-            "validation_note": (
-                "Trained on Q-CHAT-10 data (NZ + Saudi Arabia, n=1,601). "
-                "Tested on Polish clinical dataset (n=252). "
-                "AUROC = 0.814. Threshold calibrated using Lesotho DHS 2023-24."
-            ),
+            "validation_note": validation_note,
             "demo_mode": demo_mode,
+            "model_mode": self.model_mode,
         }
 
-# Singleton instance prevents repeated model loading
 _instance: AutismPredictor | None = None
 
 def get_predictor() -> AutismPredictor:
     global _instance
-
     if _instance is None:
         _instance = AutismPredictor()
-
     return _instance
 
 # Local test run
