@@ -70,17 +70,7 @@ class AutismPredictor:
             self.model_beh = joblib.load(os.path.join(MODEL_DIR, "xgb_behavioural.joblib"))
             self.model_dem = joblib.load(os.path.join(MODEL_DIR, "xgb_demographic.joblib"))
             self.meta_model = joblib.load(os.path.join(MODEL_DIR, "meta_model.joblib"))
-
-            # Prefer the enriched DHS-calibrated threshold (10 covariates:
-            # stunting, anaemia, no_caregiver, rural, low_maternal_edu,
-            # low_wealth, inadequate_anc, small_birth, home_delivery,
-            # short_interval). Falls back to the basic 4-covariate threshold
-            # if the enriched artifact isn't available.
-            enriched_path = os.path.join(MODEL_DIR, "threshold_enriched.joblib")
-            basic_path = os.path.join(MODEL_DIR, "threshold.joblib")
-            threshold_path = enriched_path if os.path.exists(enriched_path) else basic_path
-            self.threshold = float(joblib.load(threshold_path))
-
+            self.threshold = float(joblib.load(os.path.join(MODEL_DIR, "threshold.joblib")))
             self.models_loaded = True
         except FileNotFoundError:
             # Fall back to demo mode if model files are unavailable
@@ -119,22 +109,18 @@ class AutismPredictor:
                                low_maternal_edu: bool = False, low_wealth: bool = False,
                                inadequate_anc: bool = False, small_birth: bool = False,
                                home_delivery: bool = False, short_interval: bool = False) -> float:
-        # DHS-based contextual risk adjustment.
-        # Weights mirror the relative ordering of the enriched population-level
-        # risk score from the training pipeline (stunting > anaemia/maternal
-        # education/wealth > no_caregiver/rural > ANC/birth size > delivery/interval),
-        # applied here per-child rather than as a single population-wide threshold shift.
+        # DHS-based contextual risk adjustment (enriched: 10 Lesotho DHS 2023-24 indicators)
         adjustment = sum([
-            0.030 * stunted,
-            0.020 * anaemic,
-            0.020 * low_maternal_edu,
-            0.020 * low_wealth,
-            0.020 * no_caregiver,
-            0.010 * rural,
-            0.010 * inadequate_anc,
-            0.010 * small_birth,
-            0.005 * home_delivery,
-            0.005 * short_interval,
+            0.03 * stunted,
+            0.02 * anaemic,
+            0.02 * no_caregiver,
+            0.01 * rural,
+            0.015 * low_maternal_edu,
+            0.015 * low_wealth,
+            0.015 * inadequate_anc,
+            0.02 * small_birth,
+            0.01 * home_delivery,
+            0.01 * short_interval,
         ])
 
         return float(np.clip(prob + adjustment, 0.0, 1.0))
@@ -153,10 +139,10 @@ class AutismPredictor:
     def predict(self, responses: dict, age_months: int, sex: str,
                 stunted: bool = False, anaemic: bool = False,
                 no_caregiver: bool = False, rural: bool = False,
+                jaundice: bool = False, family_asd: bool = False,
                 low_maternal_edu: bool = False, low_wealth: bool = False,
                 inadequate_anc: bool = False, small_birth: bool = False,
-                home_delivery: bool = False, short_interval: bool = False,
-                jaundice: bool = False, family_asd: bool = False) -> dict:
+                home_delivery: bool = False, short_interval: bool = False) -> dict:
 
         # Prepare behavioural and demographic inputs
         X_beh = self.encode_responses(responses)
@@ -183,11 +169,11 @@ class AutismPredictor:
             prob_fused = (prob_beh + prob_dem) / 2.0
             demo_mode = True
 
-        # Apply DHS contextual calibration (10-indicator enriched set)
+        # Apply DHS contextual calibration
         prob_calibrated = self.recalibrate_individual(
             prob_fused, stunted, anaemic, no_caregiver, rural,
             low_maternal_edu, low_wealth, inadequate_anc,
-            small_birth, home_delivery, short_interval,
+            small_birth, home_delivery, short_interval
         )
 
         return {
@@ -201,8 +187,7 @@ class AutismPredictor:
             "validation_note": (
                 "Trained on Q-CHAT-10 data (NZ + Saudi Arabia, n=1,601). "
                 "Tested on Polish clinical dataset (n=252). "
-                "AUROC = 0.814. Threshold calibrated using Lesotho DHS 2023-24 "
-                "(enriched, 10-indicator model)."
+                "AUROC = 0.814. Threshold calibrated using Lesotho DHS 2023-24."
             ),
             "demo_mode": demo_mode,
         }

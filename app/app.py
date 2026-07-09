@@ -22,17 +22,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ──────────────────────────────────────────────────────────────
-# Global styles
-# All colours use CSS variables so they adapt to Streamlit light/dark theme.
-# ──────────────────────────────────────────────────────────────
-
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ── tokens (Lesotho screening identity: deep navy + savanna gold) ── */
 :root {
     --brand:        #1A4E6B;
     --brand-light:  #2A6E93;
@@ -51,8 +45,6 @@ st.markdown("""
     --body-font:    'Inter', -apple-system, sans-serif;
 }
 h1, h2, h3, .hero-title, .gauge-tier-label { font-family: var(--display-font) !important; letter-spacing: -0.01em; }
-
-/* ── badge row (regulatory / scope strip) ── */
 .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; position: relative; z-index: 1; }
 .badge-chip {
     display: inline-flex; align-items: center; gap: 6px;
@@ -62,8 +54,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label { font-family: var(--display-font) !i
     color: rgba(255,255,255,.92);
 }
 .badge-chip.warn { background: rgba(212,118,10,.20); border-color: rgba(240,192,96,.5); color: var(--accent-light); }
-
-/* ── hero stat pills ── */
 .pill-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 1.2rem; position: relative; z-index: 1; }
 .pill {
     background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16);
@@ -71,8 +61,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label { font-family: var(--display-font) !i
 }
 .pill-num { font-family: var(--display-font); font-size: 1.35rem; font-weight: 700; color: #fff; line-height: 1.1; }
 .pill-label { font-size: 0.7rem; color: rgba(255,255,255,.62); margin-top: 2px; }
-
-/* ── executive summary cards ── */
 .exec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 0.8rem 0 1.4rem; }
 .exec-card {
     border: 1px solid var(--border); border-radius: var(--radius);
@@ -80,8 +68,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label { font-family: var(--display-font) !i
 }
 .exec-card-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--brand); margin-bottom: 4px; }
 .exec-card-body { font-size: 0.88rem; opacity: 0.82; line-height: 1.5; }
-
-/* ── uniqueness / differentiator cards ── */
 .unique-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 0.6rem 0 1.6rem; }
 .unique-card {
     border: 1px solid var(--border); border-radius: var(--radius);
@@ -94,8 +80,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label { font-family: var(--display-font) !i
 .unique-num { font-family: var(--display-font); font-size: 0.85rem; font-weight: 700; color: var(--accent); margin-bottom: 6px; display: block; }
 .unique-title { font-size: 0.95rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
 .unique-body { font-size: 0.84rem; opacity: 0.75; line-height: 1.5; }
-
-/* ── CAN / CANNOT safety box ── */
 .safety-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 0.6rem 0 1.4rem; }
 .safety-col { border-radius: var(--radius); padding: 1rem 1.15rem; }
 .safety-col.can  { background: rgba(26,122,74,.07);  border: 1px solid rgba(26,122,74,.25); }
@@ -105,26 +89,16 @@ h1, h2, h3, .hero-title, .gauge-tier-label { font-family: var(--display-font) !i
 .safety-col.cant .safety-head { color: var(--risk-high); }
 .safety-item { font-size: 0.85rem; opacity: 0.85; line-height: 1.7; }
 @media (max-width: 700px) { .safety-grid { grid-template-columns: 1fr; } }
-
-/* ── stat cards ── */
 .stat-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1rem; text-align: center; background: transparent; }
 .stat-number { font-size: 1.9rem; font-weight: 700; color: var(--brand); line-height: 1.1; }
 .stat-label { font-size: 0.8rem; margin-top: 0.3rem; opacity: 0.65; }
-
-/* ── step cards ── */
 .step-card { border-left: 3px solid var(--brand); padding: 0.75rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 0.6rem; background: var(--brand-muted); }
 .step-num { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; color: var(--brand); text-transform: uppercase; }
 .step-text { font-size: 0.92rem; margin-top: 0.15rem; }
-
-/* ── data source block ── */
 .source-block { border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; margin-bottom: 0.8rem; background: transparent; }
 .source-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brand); margin-bottom: 0.3rem; }
 .source-body { font-size: 0.88rem; opacity: 0.8; line-height: 1.55; }
-
-/* ── limitation box ── */
 .limit-box { border: 1px solid rgba(255, 180, 50, 0.4); border-radius: var(--radius); padding: 1rem 1.1rem; background: rgba(255, 180, 50, 0.07); font-size: 0.88rem; line-height: 1.6; }
-
-/* ── hero banner ── */
 .hero { position: relative; overflow: hidden; padding: 1.9rem 1.9rem 1.7rem; border-radius: var(--radius); background: linear-gradient(160deg, var(--brand) 0%, #0F3349 100%); margin-bottom: 1.8rem; }
 .hero::before { content: ''; position: absolute; top: -50px; right: -50px; width: 160px; height: 160px; border-radius: 50%; background: rgba(201,148,58,.16); }
 .hero::after { content: ''; position: absolute; bottom: -70px; left: -40px; width: 200px; height: 200px; border-radius: 50%; background: rgba(42,110,147,.20); }
@@ -132,8 +106,6 @@ h1, h2, h3, .hero-title, .gauge-tier-label { font-family: var(--display-font) !i
 .hero-title { font-size: 1.9rem; font-weight: 700; color: #fff; margin: 0 0 0.5rem 0; position: relative; z-index: 1; }
 .hero-title em { font-style: normal; color: var(--accent-light); }
 .hero-sub { font-family: var(--body-font); font-size: 0.98rem; color: rgba(255,255,255,.72); margin: 0; line-height: 1.6; position: relative; z-index: 1; max-width: 680px; }
-
-/* ── risk gauge (signature element) ── */
 .gauge-card { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; background: linear-gradient(160deg, var(--brand) 0%, #0F3349 100%); border-radius: var(--radius); padding: 1.6rem 1.8rem; margin: 1rem 0 1.4rem; }
 .gauge-svg-wrap { flex-shrink: 0; }
 .gauge-readout { flex: 1; min-width: 180px; }
@@ -142,21 +114,15 @@ h1, h2, h3, .hero-title, .gauge-tier-label { font-family: var(--display-font) !i
 .gauge-tier-label.low  { background: rgba(26,122,74,.25);  color: #7BE0A8; }
 .gauge-tier-label.mid  { background: rgba(212,118,10,.25); color: var(--accent-light); }
 .gauge-tier-label.high { background: rgba(176,48,48,.28);  color: #F5A3A3; }
-
-/* ── risk banner ── */
 .risk-banner { display: flex; align-items: center; gap: 12px; padding: 0.9rem 1.1rem; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.95rem; margin-bottom: 0.8rem; }
 .risk-banner.low  { background: rgba(26,122,74,.10);  color: var(--risk-low);  border: 1px solid rgba(26,122,74,.3); }
 .risk-banner.mid  { background: rgba(212,118,10,.10); color: var(--risk-mid);  border: 1px solid rgba(212,118,10,.3); }
 .risk-banner.high { background: rgba(176,48,48,.10);  color: var(--risk-high); border: 1px solid rgba(176,48,48,.3); }
-
-/* ── cultural flag cards ── */
 .flag-card { background: transparent; border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 0.9rem 1rem; margin-bottom: 0.6rem; }
 .flag-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .flag-card-name { font-size: 0.88rem; font-weight: 700; }
 .flag-pill { font-size: 0.7rem; font-weight: 700; padding: 2px 10px; border-radius: 20px; background: rgba(212,118,10,.14); color: var(--risk-mid); }
 .flag-card-desc { font-size: 0.85rem; opacity: 0.75; line-height: 1.5; }
-
-/* ── CTA banner (Overview → Screening) ── */
 .cta-banner {
     display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
     border: 1px solid var(--border); border-radius: var(--radius);
@@ -165,18 +131,31 @@ h1, h2, h3, .hero-title, .gauge-tier-label { font-family: var(--display-font) !i
 }
 .cta-text { font-size: 0.92rem; font-weight: 600; color: var(--ink); }
 .cta-sub { font-size: 0.8rem; opacity: 0.65; margin-top: 2px; }
-
-/* ── fairness table ── */
 .stDataFrame { border-radius: var(--radius); overflow: hidden; }
-/* ── sidebar tweaks ── */
+.notice-box { display: flex; align-items: flex-start; gap: 8px; padding: 0.8rem 1rem; border-radius: var(--radius-sm); font-size: 0.88rem; line-height: 1.5; margin-bottom: 0.8rem; }
+.notice-box.warn { background: rgba(212,118,10,.08); border: 1px solid rgba(212,118,10,.25); color: var(--muted-ink); }
+.notice-box.info { background: var(--brand-muted); border: 1px solid var(--border); color: var(--muted-ink); }
 section[data-testid="stSidebar"] .stCaption { opacity: 0.6; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ──────────────────────────────────────────────────────────────
-# Sidebar
-# ──────────────────────────────────────────────────────────────
+def icon(name: str, size: int = 14, color: str = "currentColor") -> str:
+    """Small inline monochrome SVG icons (hand-authored, no external assets)."""
+    paths = {
+        "pin": '<path d="M12 22s7-7.58 7-12A7 7 0 0 0 5 10c0 4.42 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>',
+        "child": '<circle cx="12" cy="7" r="3.2"/><path d="M6 21v-2a6 6 0 0 1 12 0v2"/>',
+        "speech": '<path d="M4 4h16v11H8l-4 4V4z"/>',
+        "warning": '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+        "check": '<circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/>',
+        "cross": '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+        "info": '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="11"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+    }
+    return (f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" '
+            f'stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
+            f'style="vertical-align:-2px; display:inline-block; margin-right:4px;">{paths[name]}</svg>')
+
+
 def render_sidebar():
     st.sidebar.header("Child Information")
     age_months = st.sidebar.slider("Age (months)", min_value=18, max_value=36, value=24)
@@ -205,13 +184,7 @@ def render_sidebar():
             low_maternal_edu, low_wealth, inadequate_anc, small_birth, home_delivery, short_interval)
 
 
-# ──────────────────────────────────────────────────────────────
-# Q-CHAT form
-# ──────────────────────────────────────────────────────────────
 def _bordered_container():
-    # st.container(border=...) requires Streamlit >= 1.31.
-    # Falls back to a plain container on older pinned versions (e.g. 1.30.0)
-    # so the app doesn't crash on script execution.
     try:
         return st.container(border=True)
     except TypeError:
@@ -237,9 +210,6 @@ def render_qchat_form():
     return responses
 
 
-# ──────────────────────────────────────────────────────────────
-# Risk gauge (signature element)
-# ──────────────────────────────────────────────────────────────
 def _risk_tier(prob: float):
     if prob < 0.35:
         return "low", "LOW RISK", "#1A7A4A"
@@ -253,30 +223,9 @@ def render_gauge_svg(prob: float) -> str:
     tier, _, _ = _risk_tier(prob)
     arc_len = 283
     offset = arc_len * (1 - prob)
-    return f"""
-    <svg viewBox="0 0 220 120" width="220" height="120" style="overflow:visible;">
-        <path d="M 20 110 A 90 90 0 0 1 200 110"
-              fill="none" stroke="rgba(255,255,255,.15)" stroke-width="14" stroke-linecap="round"/>
-        <path d="M 20 110 A 90 90 0 0 1 200 110"
-              fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round"
-              stroke-dasharray="{arc_len}" stroke-dashoffset="{offset}"/>
-        <defs>
-            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#1A7A4A"/>
-                <stop offset="50%" stop-color="#D4760A"/>
-                <stop offset="100%" stop-color="#B03030"/>
-            </linearGradient>
-        </defs>
-        <text x="14" y="128" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">Low</text>
-        <text x="96" y="108" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">Mid</text>
-        <text x="185" y="128" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">High</text>
-    </svg>
-    """
+    return f"""<svg viewBox="0 0 220 120" width="220" height="120" style="overflow:visible;"><path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="14" stroke-linecap="round"/><path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="{arc_len}" stroke-dashoffset="{offset}"/><defs><linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#1A7A4A"/><stop offset="50%" stop-color="#D4760A"/><stop offset="100%" stop-color="#B03030"/></linearGradient></defs><text x="14" y="128" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">Low</text><text x="96" y="108" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">Mid</text><text x="185" y="128" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">High</text></svg>"""
 
 
-# ──────────────────────────────────────────────────────────────
-# Results
-# ──────────────────────────────────────────────────────────────
 def render_results(result: dict, responses: dict):
     prob    = result["prob_calibrated"]
     at_risk = result["at_risk"]
@@ -286,17 +235,9 @@ def render_results(result: dict, responses: dict):
     st.subheader("Screening Results")
 
     if result["demo_mode"]:
-        st.warning("Models not loaded. Showing illustrative results only.")
+        st.markdown(f'<div class="notice-box warn">{icon("warning", 15)} Models not loaded. Showing illustrative results only.</div>', unsafe_allow_html=True)
 
-    st.markdown(f"""
-    <div class="gauge-card">
-        <div class="gauge-svg-wrap">{render_gauge_svg(prob)}</div>
-        <div class="gauge-readout">
-            <div class="gauge-score">{prob:.2f}</div>
-            <span class="gauge-tier-label {tier}">{tier_label}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="gauge-card"><div class="gauge-svg-wrap">{render_gauge_svg(prob)}</div><div class="gauge-readout"><div class="gauge-score">{prob:.2f}</div><span class="gauge-tier-label {tier}">{tier_label}</span></div></div>""", unsafe_allow_html=True)
 
     banner_text = {
         "low":  "Screening result: Not at risk",
@@ -310,7 +251,7 @@ def render_results(result: dict, responses: dict):
     col2.metric("Decision Threshold", f"{result['threshold']:.2f}")
     col3.metric("Classification",     "At Risk" if at_risk else "Not At Risk")
 
-    st.info(result.get("validation_note", "Model validation details unavailable."))
+    st.markdown(f'<div class="notice-box info">{icon("info", 15)} {result.get("validation_note", "Model validation details unavailable.")}</div>', unsafe_allow_html=True)
 
     st.markdown("#### Feature contributions")
     predictor = get_predictor()
@@ -336,9 +277,9 @@ def render_results(result: dict, responses: dict):
             st.pyplot(fig)
             plt.close(fig)
         except Exception as e:
-            st.info(f"SHAP explanation unavailable: {e}")
+            st.markdown(f'<div class="notice-box info">{icon("info", 15)} SHAP explanation unavailable: {e}</div>', unsafe_allow_html=True)
     else:
-        st.info("SHAP explanations will appear once the model has been trained.")
+        st.markdown(f'<div class="notice-box info">{icon("info", 15)} SHAP explanations will appear once the model has been trained.</div>', unsafe_allow_html=True)
 
     st.markdown("#### Cultural alignment — flagged items")
     st.caption(
@@ -347,15 +288,7 @@ def render_results(result: dict, responses: dict):
         "in Sesotho-speaking contexts."
     )
     for item_id, info in result["cultural_notes"].items():
-        st.markdown(f"""
-        <div class="flag-card">
-            <div class="flag-card-top">
-                <span class="flag-card-name">{item_id} — Response: {info['response']}</span>
-                <span class="flag-pill">⚠ Review</span>
-            </div>
-            <div class="flag-card-desc">{info['note']}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"""<div class="flag-card"><div class="flag-card-top"><span class="flag-card-name">{item_id} — Response: {info['response']}</span><span class="flag-pill">{icon("warning", 12)} Review</span></div><div class="flag-card-desc">{info['note']}</div></div>""", unsafe_allow_html=True)
 
     st.divider()
     st.caption(
@@ -364,14 +297,7 @@ def render_results(result: dict, responses: dict):
     )
 
 
-# ──────────────────────────────────────────────────────────────
-# Overview  — the "first thing you see" homepage
-# Structure follows the Executive-Summary → Problem → Solution →
-# Differentiation → Safety pattern requested after supervisor review,
-# so scope, geography, and uniqueness are stated before any questionnaire.
-# ──────────────────────────────────────────────────────────────
 def render_comparison_chart():
-    """Bar chart: how many of five defensible capabilities each approach has."""
     tools = ["Q-CHAT-10\n(standalone)", "M-CHAT-R/F", "Generic AI\nautism quizzes", "This tool"]
     scores = [1, 1, 1, 5]
     colours = ["#B0BAC4", "#B0BAC4", "#B0BAC4", "#1A4E6B"]
@@ -394,91 +320,14 @@ def render_comparison_chart():
 
 
 def render_overview():
-    # ── Hero: purpose + scope stated immediately, before anything else ──
-    st.markdown("""
-    <div class="hero">
-        <div class="hero-eyebrow">● Research Prototype — Not a Clinical Diagnosis</div>
-        <div class="badge-row">
-            <span class="badge-chip">📍 Lesotho-calibrated</span>
-            <span class="badge-chip">👶 Ages 18–36 months</span>
-            <span class="badge-chip">🗣️ Behaviour + speech signals</span>
-            <span class="badge-chip warn">⚠ Screening only — not diagnostic</span>
-        </div>
-        <div class="hero-title">Autism Risk Screening for <em>Southern Africa</em></div>
-        <p class="hero-sub">
-            This tool estimates a child's likelihood of autism spectrum risk from a short caregiver
-            questionnaire, then recalibrates that estimate using ten real Lesotho Demographic and
-            Health Survey (2023–24) indicators — stunting, anaemia, caregiver presence, rural
-            residence, maternal education, household wealth, antenatal care, birth size, delivery
-            location, and birth spacing — so the result reflects the population it will actually be
-            used in, not just the country the training data came from.
-        </p>
-        <div class="pill-row">
-            <div class="pill"><div class="pill-num">1,601</div><div class="pill-label">Training records</div></div>
-            <div class="pill"><div class="pill-num">0.814</div><div class="pill-label">AUROC, held-out test</div></div>
-            <div class="pill"><div class="pill-num">0.498</div><div class="pill-label">DHS-calibrated threshold</div></div>
-            <div class="pill"><div class="pill-num">Free</div><div class="pill-label">Open-source, no cost</div></div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="hero"><div class="hero-eyebrow">● Research Prototype — Not a Clinical Diagnosis</div><div class="badge-row"><span class="badge-chip">{icon("pin", 12)} Lesotho-calibrated</span><span class="badge-chip">{icon("child", 12)} Ages 18–36 months</span><span class="badge-chip">{icon("speech", 12)} Behaviour + speech signals</span><span class="badge-chip warn">{icon("warning", 12)} Screening only — not diagnostic</span></div><div class="hero-title">Autism Risk Screening for <em>Southern Africa</em></div><p class="hero-sub">This tool estimates a child's likelihood of autism spectrum risk from a short caregiver questionnaire, then recalibrates that estimate using ten real Lesotho Demographic and Health Survey (2023–24) indicators — stunting, anaemia, caregiver presence, rural residence, maternal education, household wealth, antenatal care, birth size, delivery location, and birth spacing — so the result reflects the population it will actually be used in, not just the country the training data came from.</p><div class="pill-row"><div class="pill"><div class="pill-num">1,601</div><div class="pill-label">Training records</div></div><div class="pill"><div class="pill-num">0.814</div><div class="pill-label">AUROC, held-out test</div></div><div class="pill"><div class="pill-num">0.498</div><div class="pill-label">DHS-calibrated threshold</div></div><div class="pill"><div class="pill-num">Free</div><div class="pill-label">Open-source, no cost</div></div></div></div>""", unsafe_allow_html=True)
 
-    # ── Executive summary: what it does / who it's for / where it applies ──
     st.markdown("### Executive summary")
-    st.markdown("""
-    <div class="exec-grid">
-        <div class="exec-card">
-            <div class="exec-card-title">What this does</div>
-            <div class="exec-card-body">Combines a Q-CHAT-10 caregiver questionnaire with demographic and health
-            indicators through a late-fusion XGBoost model, producing a calibrated risk score and an
-            explanation of which questions drove it.</div>
-        </div>
-        <div class="exec-card">
-            <div class="exec-card-title">Geography &amp; data</div>
-            <div class="exec-card-body">Trained on toddler screening data from New Zealand, Saudi Arabia, and
-            Poland; tested on a Polish clinical dataset; threshold recalibrated on Lesotho DHS 2023–24
-            microdata; speech items reviewed against a Sesotho sa Leboa child-speech corpus.</div>
-        </div>
-        <div class="exec-card">
-            <div class="exec-card-title">Who it's for</div>
-            <div class="exec-card-body">Caregivers and community health workers in Lesotho and similar
-            low-resource Southern African settings who need a first-pass screen before a formal
-            clinical referral.</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="exec-grid"><div class="exec-card"><div class="exec-card-title">What this does</div><div class="exec-card-body">Combines a Q-CHAT-10 caregiver questionnaire with demographic and health indicators through a late-fusion XGBoost model, producing a calibrated risk score and an explanation of which questions drove it.</div></div><div class="exec-card"><div class="exec-card-title">Geography &amp; data</div><div class="exec-card-body">Trained on toddler screening data from New Zealand, Saudi Arabia, and Poland; tested on a Polish clinical dataset; threshold recalibrated on Lesotho DHS 2023–24 microdata; speech items reviewed against a Sesotho sa Leboa child-speech corpus.</div></div><div class="exec-card"><div class="exec-card-title">Who it's for</div><div class="exec-card-body">Caregivers and community health workers in Lesotho and similar low-resource Southern African settings who need a first-pass screen before a formal clinical referral.</div></div></div>""", unsafe_allow_html=True)
 
-    # ── What makes it different (uniqueness, stated up front) ──
     st.markdown("### What makes this different")
-    st.markdown("""
-    <div class="unique-grid">
-        <div class="unique-card">
-            <span class="unique-num">01</span>
-            <div class="unique-title">Locally recalibrated, not just locally translated</div>
-            <div class="unique-body">The decision threshold is shifted using ten real Lesotho health-survey
-            indicators, not a generic cutoff imported from a different population.</div>
-        </div>
-        <div class="unique-card">
-            <span class="unique-num">02</span>
-            <div class="unique-title">Explainable per-child, not a black box</div>
-            <div class="unique-body">Every result ships with a SHAP breakdown showing which questionnaire
-            items pushed the score up or down.</div>
-        </div>
-        <div class="unique-card">
-            <span class="unique-num">03</span>
-            <div class="unique-title">Fairness-audited across subgroups</div>
-            <div class="unique-body">Performance is evaluated separately by sex and age band. The observed
-            Female/Male F1 gap (0.033) falls within tolerance — reported rather than assumed.</div>
-        </div>
-        <div class="unique-card">
-            <span class="unique-num">04</span>
-            <div class="unique-title">Culturally flagged, not culturally blind</div>
-            <div class="unique-body">Speech-related items are cross-checked against a Sesotho sa Leboa child
-            corpus and flagged where a response may reflect language context rather than risk.</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="unique-grid"><div class="unique-card"><span class="unique-num">01</span><div class="unique-title">Locally recalibrated, not just locally translated</div><div class="unique-body">The decision threshold is shifted using ten real Lesotho health-survey indicators, not a generic cutoff imported from a different population.</div></div><div class="unique-card"><span class="unique-num">02</span><div class="unique-title">Explainable per-child, not a black box</div><div class="unique-body">Every result ships with a SHAP breakdown showing which questionnaire items pushed the score up or down.</div></div><div class="unique-card"><span class="unique-num">03</span><div class="unique-title">Fairness-audited across subgroups</div><div class="unique-body">Performance is evaluated separately by sex and age band. The observed Female/Male F1 gap (0.033) falls within tolerance — reported rather than assumed.</div></div><div class="unique-card"><span class="unique-num">04</span><div class="unique-title">Culturally flagged, not culturally blind</div><div class="unique-body">Speech-related items are cross-checked against a Sesotho sa Leboa child corpus and flagged where a response may reflect language context rather than risk.</div></div></div>""", unsafe_allow_html=True)
 
-    # ── Comparison chart, as recommended by supervisor review ──
     render_comparison_chart()
     st.caption(
         "Capabilities compared: local threshold calibration, multimodal (behaviour + speech) input, "
@@ -487,40 +336,12 @@ def render_overview():
         "applied with a single global cutoff and no explainability or fairness reporting."
     )
 
-    # ── Safety: what it can and cannot do ──
     st.markdown("### What this tool can — and cannot — do")
-    st.markdown("""
-    <div class="safety-grid">
-        <div class="safety-col can">
-            <div class="safety-head">✓ Can</div>
-            <div class="safety-item">• Flag elevated ASD risk for follow-up</div>
-            <div class="safety-item">• Adjust for local health context</div>
-            <div class="safety-item">• Show why a score was produced</div>
-            <div class="safety-item">• Surface culturally sensitive items</div>
-        </div>
-        <div class="safety-col cant">
-            <div class="safety-head">✗ Cannot</div>
-            <div class="safety-item">• Diagnose autism</div>
-            <div class="safety-item">• Replace a clinical evaluation</div>
-            <div class="safety-item">• Account for a child's full medical history</div>
-            <div class="safety-item">• Guarantee accuracy for an individual child</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="safety-grid"><div class="safety-col can"><div class="safety-head">{icon("check", 14)} Can</div><div class="safety-item">• Flag elevated ASD risk for follow-up</div><div class="safety-item">• Adjust for local health context</div><div class="safety-item">• Show why a score was produced</div><div class="safety-item">• Surface culturally sensitive items</div></div><div class="safety-col cant"><div class="safety-head">{icon("cross", 14)} Cannot</div><div class="safety-item">• Diagnose autism</div><div class="safety-item">• Replace a clinical evaluation</div><div class="safety-item">• Account for a child's full medical history</div><div class="safety-item">• Guarantee accuracy for an individual child</div></div></div>""", unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="cta-banner">
-        <div>
-            <div class="cta-text">Ready to try a screening?</div>
-            <div class="cta-sub">Open the Screening tab above — it takes about two minutes.</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="cta-banner"><div><div class="cta-text">Ready to try a screening?</div><div class="cta-sub">Open the Screening tab above — it takes about two minutes.</div></div></div>""", unsafe_allow_html=True)
 
 
-# ──────────────────────────────────────────────────────────────
-# About
-# ──────────────────────────────────────────────────────────────
 def render_about():
     st.markdown("#### How it works")
     left, right = st.columns(2)
@@ -535,12 +356,7 @@ def render_about():
             ("Step 6", "A risk score and screening recommendation are returned"),
         ]
         for num, text in steps:
-            st.markdown(f"""
-            <div class="step-card">
-                <div class="step-num">{num}</div>
-                <div class="step-text">{text}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"""<div class="step-card"><div class="step-num">{num}</div><div class="step-text">{text}</div></div>""", unsafe_allow_html=True)
 
     with right:
         st.markdown("#### Data sources")
@@ -563,28 +379,12 @@ def render_about():
              "linguistic analysis of speech-related Q-CHAT items."),
         ]
         for title, body in sources:
-            st.markdown(f"""
-            <div class="source-block">
-                <div class="source-title">{title}</div>
-                <div class="source-body">{body}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"""<div class="source-block"><div class="source-title">{title}</div><div class="source-body">{body}</div></div>""", unsafe_allow_html=True)
 
     st.markdown("#### Limitations")
-    st.markdown("""
-    <div class="limit-box">
-        This is a screening tool and does not constitute a clinical diagnosis.
-        The system has not been validated with children or caregivers in Lesotho.
-        Results must be interpreted alongside professional clinical assessment.
-        The SADiLaR corpus represents Sesotho sa Leboa, which is closely related
-        to but not identical to Sesotho spoken in Lesotho.
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="limit-box">This is a screening tool and does not constitute a clinical diagnosis. The system has not been validated with children or caregivers in Lesotho. Results must be interpreted alongside professional clinical assessment. The SADiLaR corpus represents Sesotho sa Leboa, which is closely related to but not identical to Sesotho spoken in Lesotho.</div>""", unsafe_allow_html=True)
 
 
-# ──────────────────────────────────────────────────────────────
-# Fairness tab
-# ──────────────────────────────────────────────────────────────
 def render_fairness():
     st.markdown("### Fairness evaluation")
     st.markdown(
@@ -613,15 +413,14 @@ def render_fairness():
         st.pyplot(fig)
         plt.close(fig)
     else:
-        st.info(
-            "Fairness evaluation results will appear here after "
-            "model evaluation has been completed."
+        st.markdown(
+            f'<div class="notice-box info">{icon("info", 15)} '
+            'Fairness evaluation results will appear here after '
+            'model evaluation has been completed.</div>',
+            unsafe_allow_html=True,
         )
 
 
-# ──────────────────────────────────────────────────────────────
-# Main
-# ──────────────────────────────────────────────────────────────
 def main():
     tab_overview, tab_screen, tab_about, tab_fairness = st.tabs(
         ["Overview", "Screening", "About", "Fairness"]
