@@ -2,7 +2,10 @@ Model,Task / Test set,AUROC,Sensitivity,Specificity,Directly comparable?
 Sollis et al. (2025) — NZ to Poland,"Q-CHAT-10 transfer, Poland clinical diagnosis (n = 252)",0.85,0.91,0.5,Yes — identical evaluation setting
 Sollis et al. (2025) — Saudi to Poland,"Q-CHAT-10 transfer, Poland clinical diagnosis (n = 252)",0.87,0.84,0.8,Yes — primary benchmark
 Sollis et al. (2025) — Poland in-domain (5-fold CV),"Q-CHAT-10 in-domain evaluation, Poland (n = 252)",0.91,0.84,0.9,Partially comparable — in-domain evaluation
+"Sollis, Wall & Washington (2024, preprint) — NZ to Poland, full 13-feature model","Q-CHAT-10 (all items + demographics) transfer, Poland clinical diagnosis (n = 252)",0.94,,,Yes — same full feature set as this project; strongest comparable benchmark
+"Sollis, Wall & Washington (2024, preprint) — Saudi to Poland, full 13-feature model","Q-CHAT-10 (all items + demographics) transfer, Poland clinical diagnosis (n = 252)",0.93,,,Yes — same full feature set as this project; strongest comparable benchmark
+"Sollis, Wall & Washington (2024, preprint) — Poland in-domain (5-fold CV), full model","Q-CHAT-10 in-domain evaluation, Poland (n = 252)",0.94,,,"Partially comparable — in-domain evaluation, full feature set"
 Rajagopalan et al. (2024) — SPARK XGBoost,"Medical and developmental features (n = 30,660)",0.895,0.805,0.829,No — different features and population
 Perochon et al. (2023) — SenseToKnow,Video-based digital phenotyping,0.9,0.878,0.808,No — different modality
 Megerian et al. (2022) — Canvas Dx (FDA-cleared),Multimodal questionnaire and video assessment,Not reported,0.98,PPV 81% / NPV 98%,No — proprietary multimodal system
-This study — Behavioural Ensemble + prior correction,"Q-CHAT-10 transfer, Poland clinical diagnosis (n = 252)",0.892,0.563,0.966,Reference model
+This study — Logistic Regression (CV selected 0% XGBoost weight) + prior correction,"Q-CHAT-10 transfer, Poland clinical diagnosis (n = 252)",0.892,0.822,0.778,Reference model
