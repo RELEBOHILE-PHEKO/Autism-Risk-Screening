@@ -211,9 +211,20 @@ def render_qchat_form():
 
 
 def _risk_tier(prob: float):
-    if prob < 0.35:
+    """
+    Tier cutoffs for a PRIOR-CORRECTED probability, where the deployment
+    ASD prevalence is calibrated to ~1% (Zeidan et al., 2022), not the
+    ~42% training-set prevalence. Raw probabilities cluster near 0 after
+    correction, so cutoffs are set relative to the model's own decision
+    threshold rather than the old 0.35/0.60 scale, which assumed
+    uncorrected probabilities and would show nearly every child as "low
+    risk" regardless of actual status.
+    """
+    predictor = get_predictor()
+    thr = getattr(predictor, "threshold", None) or 0.01
+    if prob < thr:
         return "low", "LOW RISK", "#1A7A4A"
-    elif prob < 0.60:
+    elif prob < thr * 3:
         return "mid", "MODERATE RISK — MONITOR", "#D4760A"
     else:
         return "high", "AT RISK — REFER", "#B03030"
@@ -221,8 +232,15 @@ def _risk_tier(prob: float):
 
 def render_gauge_svg(prob: float) -> str:
     tier, _, _ = _risk_tier(prob)
+    predictor = get_predictor()
+    thr = getattr(predictor, "threshold", None) or 0.01
+    # Display scale is relative to ~5x the decision threshold so the arc
+    # is visually meaningful even though raw probabilities are tiny after
+    # prior correction (deployment prevalence ~1%).
+    display_max = max(thr * 5, 0.05)
+    frac = min(prob / display_max, 1.0)
     arc_len = 283
-    offset = arc_len * (1 - prob)
+    offset = arc_len * (1 - frac)
     return f"""<svg viewBox="0 0 220 120" width="220" height="120" style="overflow:visible;"><path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="14" stroke-linecap="round"/><path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="{arc_len}" stroke-dashoffset="{offset}"/><defs><linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#1A7A4A"/><stop offset="50%" stop-color="#D4760A"/><stop offset="100%" stop-color="#B03030"/></linearGradient></defs><text x="14" y="128" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">Low</text><text x="96" y="108" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">Mid</text><text x="185" y="128" font-size="10" fill="rgba(255,255,255,.5)" font-family="Inter, sans-serif">High</text></svg>"""
 
 
@@ -244,7 +262,6 @@ def render_comparison_chart():
         ],
     )
 
-    # Compact visual summary (count of capabilities present)
     counts = capability_df.sum(axis=0).sort_values(ascending=True)
 
     fig, ax = plt.subplots(figsize=(7, 2.6))
@@ -259,9 +276,72 @@ def render_comparison_chart():
     st.pyplot(fig)
     plt.close(fig)
 
-    # Human-readable matrix
     show_df = capability_df.replace({1: "✓", 0: "—"}).T
     st.dataframe(show_df, use_container_width=True)
+
+
+def render_results(result: dict, responses: dict):
+    st.markdown("### Screening result")
+
+    prob = float(result.get("prob_calibrated", result.get("prob_fused", 0.0)))
+    tier, tier_label, _ = _risk_tier(prob)
+    thr = float(result.get("threshold", 0.5))
+
+    banner_text = (
+        "Higher likelihood of autism-related traits. Please refer for formal developmental assessment."
+        if result.get("at_risk", False)
+        else "No elevated risk flag at the selected threshold. Continue developmental monitoring."
+    )
+    st.markdown(
+        f'<div class="risk-banner {tier}">{icon("info", 15)} {banner_text}</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f"""<div class="gauge-card">
+        <div class="gauge-svg-wrap">{render_gauge_svg(prob)}</div>
+        <div class="gauge-readout">
+            <div class="gauge-score">{_fmt_pct(prob)}</div>
+            <div class="gauge-tier-label {tier}">{tier_label}</div>
+            <div style="margin-top:8px;font-size:.82rem;color:rgba(255,255,255,.78);">
+                Decision threshold: {_fmt_pct(thr)}
+            </div>
+        </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Calibrated risk", _fmt_pct(prob))
+    c2.metric("Behavioural model", _fmt_pct(result.get("prob_behavioural", 0.0)))
+    dem = result.get("prob_demographic", None)
+    c3.metric("Demographic model", "N/A" if dem is None else _fmt_pct(dem))
+
+    st.markdown(
+        f'<div class="notice-box info">{icon("info", 15)} '
+        f'{result.get("validation_note", "Model details unavailable.")}</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption(f"Model mode: {str(result.get('model_mode', 'unknown')).upper()}")
+
+    notes = result.get("cultural_notes", {}) or {}
+    if notes:
+        st.markdown("#### Cultural interpretation flags (speech-related items)")
+        for item_id, payload in notes.items():
+            st.markdown(
+                f"""<div class="flag-card">
+                <div class="flag-card-top">
+                    <div class="flag-card-name">{item_id}: response = {payload.get("response","—")}</div>
+                    <span class="flag-pill">Context note</span>
+                </div>
+                <div class="flag-card-desc">{payload.get("note","")}</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+
+def _fmt_pct(x: float) -> str:
+    return f"{float(x) * 100:.1f}%"
 
 
 def render_overview():
@@ -272,26 +352,78 @@ def render_overview():
     thr_txt = f"{info['threshold']:.3f}" if info["threshold"] is not None else "n/a"
     mode_txt = info["mode"].upper()
 
-    st.markdown(f"""<div class="hero"><div class="hero-eyebrow">● Research Prototype — Not a Clinical Diagnosis</div><div class="badge-row"><span class="badge-chip">{icon("pin", 12)} Lesotho-calibrated</span><span class="badge-chip">{icon("child", 12)} Ages 18–36 months</span><span class="badge-chip">{icon("speech", 12)} Behaviour + speech signals</span><span class="badge-chip warn">{icon("warning", 12)} Screening only — not diagnostic</span></div><div class="hero-title">Autism Risk Screening for <em>Southern Africa</em></div><p class="hero-sub">This tool estimates autism risk using the same saved artifacts produced by the notebook pipeline in your project.</p><div class="pill-row"><div class="pill"><div class="pill-num">1,601</div><div class="pill-label">Training records</div></div><div class="pill"><div class="pill-num">{auroc_txt}</div><div class="pill-label">AUROC (from outputs)</div></div><div class="pill"><div class="pill-num">{thr_txt}</div><div class="pill-label">Loaded threshold</div></div><div class="pill"><div class="pill-num">{mode_txt}</div><div class="pill-label">Artifact mode</div></div></div></div>""", unsafe_allow_html=True)
-
-    st.markdown("### Executive summary")
-    st.markdown("""<div class="exec-grid"><div class="exec-card"><div class="exec-card-title">What this does</div><div class="exec-card-body">Uses the notebook-aligned behavioural ensemble pipeline (XGBoost + Logistic Regression), applies prior correction and the saved deployment threshold, and returns a calibrated screening risk score.</div></div><div class="exec-card"><div class="exec-card-title">Geography &amp; data</div><div class="exec-card-body">Trained on toddler screening data from New Zealand, Saudi Arabia, and Poland; tested on a Polish clinical dataset; threshold recalibrated on Lesotho DHS 2023–24 microdata; speech items reviewed against a Sesotho sa Leboa child-speech corpus.</div></div><div class="exec-card"><div class="exec-card-title">Who it's for</div><div class="exec-card-body">Caregivers and community health workers in Lesotho and similar low-resource Southern African settings who need a first-pass screen before a formal clinical referral.</div></div></div>""", unsafe_allow_html=True)
-
-    st.markdown("### What makes this different")
-    st.markdown("""<div class="unique-grid"><div class="unique-card"><span class="unique-num">01</span><div class="unique-title">Locally recalibrated, not just locally translated</div><div class="unique-body">The decision threshold is shifted using ten real Lesotho health-survey indicators, not a generic cutoff imported from a different population.</div></div><div class="unique-card"><span class="unique-num">02</span><div class="unique-title">Explainable per-child, not a black box</div><div class="unique-body">Every result can be paired with item-level interpretation and flagged culturally sensitive responses.</div></div><div class="unique-card"><span class="unique-num">03</span><div class="unique-title">Fairness-audited across subgroups</div><div class="unique-body">Performance is evaluated separately by sex and age band. The observed Female/Male F1 gap (0.033) falls within tolerance — reported rather than assumed.</div></div><div class="unique-card"><span class="unique-num">04</span><div class="unique-title">Culturally flagged, not culturally blind</div><div class="unique-body">Speech-related items are cross-checked against a Sesotho sa Leboa child corpus and flagged where a response may reflect language context rather than risk.</div></div></div>""", unsafe_allow_html=True)
-
-    render_comparison_chart()
-    st.caption(
-        "Capabilities compared: local threshold calibration, multimodal (behaviour + speech) input, "
-        "per-prediction explainability, subgroup fairness auditing, and free/open access. Generic "
-        "screeners such as M-CHAT-R/F and standalone Q-CHAT-10 forms are validated instruments but are "
-        "applied with a single global cutoff and no explainability or fairness reporting."
+    st.markdown(
+        f"""<div class="hero"><div class="hero-eyebrow">● Research Prototype — Not a Clinical Diagnosis</div>
+        <div class="badge-row"><span class="badge-chip">{icon("pin", 12)} Lesotho-calibrated</span>
+        <span class="badge-chip">{icon("child", 12)} Ages 18–36 months</span>
+        <span class="badge-chip">{icon("speech", 12)} Behaviour + speech signals</span>
+        <span class="badge-chip warn">{icon("warning", 12)} Screening only — not diagnostic</span></div>
+        <div class="hero-title">Autism Risk Screening for <em>Southern Africa</em></div>
+        <p class="hero-sub">A caregiver-facing screener using saved, validated model artifacts from this project to estimate referral priority.</p>
+        <div class="pill-row"><div class="pill"><div class="pill-num">1,601</div><div class="pill-label">Training records</div></div>
+        <div class="pill"><div class="pill-num">{auroc_txt}</div><div class="pill-label">AUROC (from outputs)</div></div>
+        <div class="pill"><div class="pill-num">{thr_txt}</div><div class="pill-label">Active threshold</div></div>
+        <div class="pill"><div class="pill-num">{mode_txt}</div><div class="pill-label">Loaded artifacts</div></div></div></div>""",
+        unsafe_allow_html=True,
     )
 
-    st.markdown("### What this tool can — and cannot — do")
-    st.markdown(f"""<div class="safety-grid"><div class="safety-col can"><div class="safety-head">{icon("check", 14)} Can</div><div class="safety-item">• Flag elevated ASD risk for follow-up</div><div class="safety-item">• Use notebook-calibrated thresholding</div><div class="safety-item">• Surface culturally sensitive items</div><div class="safety-item">• Support referral triage in low-resource settings</div></div><div class="safety-col cant"><div class="safety-head">{icon("cross", 14)} Cannot</div><div class="safety-item">• Diagnose autism</div><div class="safety-item">• Replace a clinical evaluation</div><div class="safety-item">• Account for a child's full medical history</div><div class="safety-item">• Guarantee accuracy for an individual child</div></div></div>""", unsafe_allow_html=True)
+    st.markdown("### Project overview")
+    st.markdown(
+        """
+This application estimates autism risk using the same trained models produced by the notebook pipeline in this project. It is designed as a research prototype to support early autism screening among young children, particularly in low-resource settings.
 
-    st.markdown("""<div class="cta-banner"><div><div class="cta-text">Ready to try a screening?</div><div class="cta-sub">Open the Screening tab above — it takes about two minutes.</div></div></div>""", unsafe_allow_html=True)
+The system uses responses from the Q-CHAT-10 questionnaire together with demographic information to generate an autism risk estimate. Predictions are produced using the saved model artifacts created during training and evaluation, ensuring consistency between the notebook experiments and the deployed application.
+
+The underlying pipeline combines machine learning models trained on behavioural screening data from multiple international datasets and incorporates contextual insights from Southern Africa. The project also evaluates model fairness across demographic groups to improve reliability and reduce potential bias.
+
+**Important:** This tool is intended for research and educational purposes only. It does not provide a medical diagnosis and should not replace professional clinical assessment. If you have concerns about a child's development, please consult a qualified healthcare professional.
+        """
+    )
+
+    st.markdown("### Executive summary")
+    st.markdown(
+        """<div class="exec-grid"><div class="exec-card"><div class="exec-card-title">What this does</div>
+        <div class="exec-card-body">Scores Q-CHAT-10 behavioural responses using an ensemble model, calibrates risk to target population prevalence, adjusts for local health comorbidities, and returns a practical referral recommendation.</div></div>
+        <div class="exec-card"><div class="exec-card-title">Geography &amp; data</div>
+        <div class="exec-card-body">Model development used multinational toddler screening datasets, with calibration decisions informed by Lesotho DHS indicators (stunting, anaemia) and local language-context review.</div></div>
+        <div class="exec-card"><div class="exec-card-title">Who it's for</div>
+        <div class="exec-card-body">Caregivers and front-line health workers who need a first-pass risk flag before specialist assessment.</div></div></div>""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("### What makes this different")
+    st.markdown(
+        """<div class="unique-grid"><div class="unique-card"><span class="unique-num">01</span><div class="unique-title">Population-aware calibration</div><div class="unique-body">Thresholding is adjusted for local population context (Zeidan et al., 2022 prevalence) rather than copied from a single external cohort.</div></div>
+        <div class="unique-card"><span class="unique-num">02</span><div class="unique-title">DHS comorbidity adjustment</div><div class="unique-body">Item responses are reweighted using Lesotho DHS 2023–24 stunting and anaemia prevalence, since these conditions can mimic autism-related behaviours on screening items.</div></div>
+        <div class="unique-card"><span class="unique-num">03</span><div class="unique-title">Fairness reporting</div><div class="unique-body">Performance is checked across key subgroups, with gaps reported explicitly.</div></div>
+        <div class="unique-card"><span class="unique-num">04</span><div class="unique-title">Culture-aware wording flags</div><div class="unique-body">Speech-related items include context notes where language/culture may affect responses.</div></div></div>""",
+        unsafe_allow_html=True,
+    )
+
+    render_comparison_chart()
+
+    st.markdown("### What this tool can — and cannot — do")
+    st.markdown(
+        f"""<div class="safety-grid"><div class="safety-col can"><div class="safety-head">{icon("check", 14)} Can</div>
+        <div class="safety-item">• Flag elevated ASD risk for follow-up</div>
+        <div class="safety-item">• Support referral prioritization</div>
+        <div class="safety-item">• Provide context notes for sensitive items</div></div>
+        <div class="safety-col cant"><div class="safety-head">{icon("cross", 14)} Cannot</div>
+        <div class="safety-item">• Diagnose autism</div>
+        <div class="safety-item">• Replace specialist evaluation</div>
+        <div class="safety-item">• Guarantee outcome for an individual child</div></div></div>""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """<div class="cta-banner">
+        <div>
+            <div class="cta-text">Ready to try a screening?</div>
+            <div class="cta-sub">Open the Screening tab above — it takes about two minutes.</div>
+        </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
 
 def render_about():
@@ -301,48 +433,68 @@ def render_about():
     with left:
         steps = [
             ("Step 1", "Caregiver fills in the Q-CHAT-10 questionnaire"),
-            ("Step 2", "Child age, sex, and health indicators are recorded"),
-            ("Step 3", "Two XGBoost models process behavioural and demographic inputs"),
-            ("Step 4", "Outputs are combined using late fusion averaging"),
-            ("Step 5", "Threshold is adjusted using Lesotho DHS health indicators"),
-            ("Step 6", "A risk score and screening recommendation are returned"),
+            ("Step 2", "Child age, sex, jaundice, and family ASD history are recorded"),
+            ("Step 3", "Q-CHAT-10 item responses are reweighted using Lesotho DHS stunting/anaemia prevalence"),
+            ("Step 4", "An XGBoost + Logistic Regression behavioural ensemble scores the DHS-adjusted responses"),
+            ("Step 5", "The blended probability is rescaled to the target population's ASD prevalence (Zeidan et al., 2022)"),
+            ("Step 6", "A risk score, referral category, and per-item explanation are returned"),
         ]
         for num, text in steps:
-            st.markdown(f"""<div class="step-card"><div class="step-num">{num}</div><div class="step-text">{text}</div></div>""", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="step-card">
+                <div class="step-num">{num}</div>
+                <div class="step-text">{text}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
     with right:
         st.markdown("#### Data sources")
         sources = [
             ("Q-CHAT-10 training data",
-             "Unified toddler screening dataset (Abbadi & Thabtah, 2025). "
-             "1,601 records filtered to ages 18–36 months from New Zealand, "
-             "Saudi Arabia, and Poland."),
+             "Unified toddler screening dataset. 1,601 records filtered to ages 18–36 months "
+             "from New Zealand, Saudi Arabia, and Poland."),
             ("Test set",
              "Polish clinical dataset (Niedźwiecka et al., 2020). "
              "252 records with confirmed ASD and typically developing cases."),
-            ("Threshold calibration",
-             "Lesotho Demographic and Health Survey 2023–24 (LSKR81DT, LSBR81DT). "
-             "Enriched calibration using stunting, anaemia, caregiver presence, rural "
-             "residence, maternal education, household wealth, antenatal care adequacy, "
-             "birth size, delivery location, and birth interval."),
+            ("Comorbidity adjustment & threshold calibration",
+             "Lesotho Demographic and Health Survey 2023–24 (LSKR81DT). "
+             "Stunting, anaemia, caregiver presence, and rural residence indicators."),
+            ("Population prevalence prior correction",
+             "Global pooled ASD prevalence estimate (Zeidan et al., 2022), used since the "
+             "Lesotho DHS does not measure ASD prevalence directly."),
             ("Cultural alignment",
              "SADiLaR Sesotho sa Leboa child speech corpus. "
              "Naturalistic therapist-child interaction recordings used for "
              "linguistic analysis of speech-related Q-CHAT items."),
         ]
         for title, body in sources:
-            st.markdown(f"""<div class="source-block"><div class="source-title">{title}</div><div class="source-body">{body}</div></div>""", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="source-block">
+                <div class="source-title">{title}</div>
+                <div class="source-body">{body}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("#### Limitations")
-    st.markdown("""<div class="limit-box">This is a screening tool and does not constitute a clinical diagnosis. The system has not been validated with children or caregivers in Lesotho. Results must be interpreted alongside professional clinical assessment. The SADiLaR corpus represents Sesotho sa Leboa, which is closely related to but not identical to Sesotho spoken in Lesotho.</div>""", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="limit-box">
+        This is a screening tool and does not constitute a clinical diagnosis.
+        The system has not been validated with children or caregivers in Lesotho.
+        Results must be interpreted alongside professional clinical assessment.
+        The SADiLaR corpus represents Sesotho sa Leboa, which is closely related
+        to but not identical to Sesotho spoken in Lesotho. The DHS comorbidity
+        adjustment applies a population-level correction; an individual-level
+        version was tested but requires primary data linking Q-CHAT-10 responses
+        to individual health records, which does not yet exist for Lesotho.
+    </div>
+    """, unsafe_allow_html=True)
 
 
 def render_fairness():
     st.markdown("### Fairness evaluation")
     st.markdown(
         "Subgroup performance analysis across age and sex. "
-        "Overall F1 = 0.768. Female/Male F1 gap = 0.033, within the 0.05 "
-        "tolerance — no mitigation was required."
+        "A disparity is flagged where subgroup F1 falls more than 0.05 below the overall."
     )
 
     fairness_path = "outputs/fairness/subgroup_results.csv"
@@ -350,13 +502,14 @@ def render_fairness():
         df = pd.read_csv(fairness_path)
         st.dataframe(df, use_container_width=True)
 
+        overall_f1 = df["f1"].mean()
         fig, ax = plt.subplots(figsize=(7, 2.5))
         fig.patch.set_alpha(0)
         ax.set_facecolor("none")
-        colours = ["#B03030" if f < 0.718 else "#1A4E6B" for f in df["f1"]]
+        colours = ["#B03030" if f < overall_f1 - 0.05 else "#1A4E6B" for f in df["f1"]]
         ax.barh(df["subgroup"], df["f1"], color=colours, height=0.5)
-        ax.axvline(0.768, color="gray", linewidth=1, linestyle="--",
-                   label="Overall F1 = 0.768", alpha=0.7)
+        ax.axvline(overall_f1, color="gray", linewidth=1, linestyle="--",
+                   label=f"Overall F1 = {overall_f1:.3f}", alpha=0.7)
         ax.set_xlabel("F1 score", color="gray", fontsize=9)
         ax.tick_params(colors="gray", labelsize=9)
         ax.legend(fontsize=8, labelcolor="gray", framealpha=0, loc="lower right")
@@ -365,11 +518,9 @@ def render_fairness():
         st.pyplot(fig)
         plt.close(fig)
     else:
-        st.markdown(
-            f'<div class="notice-box info">{icon("info", 15)} '
-            'Fairness evaluation results will appear here after '
-            'model evaluation has been completed.</div>',
-            unsafe_allow_html=True,
+        st.info(
+            "Fairness evaluation results will appear here after "
+            "model evaluation has been completed."
         )
 
 
@@ -383,8 +534,8 @@ def main():
 
     with tab_screen:
         (age_months, sex, jaundice, family_asd, stunted, anaemic, no_caregiver, rural,
-         low_maternal_edu, low_wealth, inadequate_anc, small_birth, home_delivery,
-         short_interval) = render_sidebar()
+         low_maternal_edu, low_wealth, inadequate_anc, small_birth,
+         home_delivery, short_interval) = render_sidebar()
         responses = render_qchat_form()
 
         if st.button("Generate Assessment", type="primary", use_container_width=True):
