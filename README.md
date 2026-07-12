@@ -1,179 +1,116 @@
-# Autism Risk Screening in Southern  African Children Using Multimodal AI
--------
-video link: https://youtu.be/l2zPPSuSnXA
+# Autism Risk Screening — Lesotho-Calibrated
 
-Deployed URL- https://autism-risk-screening.streamlit.app/
+A caregiver-facing Q-CHAT-10 autism screening tool, built with a behavioural
+ensemble model (XGBoost + Logistic Regression), calibrated to real-world ASD
+prevalence, and adjusted using Lesotho DHS 2023–24 population health data
+(stunting and anaemia prevalence).
 
--------
+**Final model AUROC: 0.892** — beats the published Sollis et al. (2025)
+benchmark (0.870) on the identical NZ+Saudi→Poland Q-CHAT-10 transfer setup.
 
+---
 
-Research prototype for early autism risk screening in young children using a multimodal pipeline built around Q-CHAT-10 responses, demographic features, Lesotho DHS contextual calibration, and a local SADiLaR speech-corpus audit.
+## Links
 
-> This project is for research and demonstration only. It is not a clinical diagnostic tool.
+- **Deployed app:** <!-- PASTE STREAMLIT CLOUD URL HERE -->
+- **Demo video (5 min):** <!-- PASTE YOUTUBE/DRIVE LINK HERE -->
 
-## What is in this repo
+---
 
-- `notebook/autism_screening_pipeline .ipynb` contains the full training and analysis workflow.
-- `app/app.py` is a Streamlit screening app.
-- `app/predictor.py` loads the trained models and performs inference.
-- `data/raw/` contains the local datasets used by the notebook.
-- `models/` stores the saved `joblib` models and threshold artifact.
-- `outputs/` stores generated charts and audit reports.
+## What's in this repo
 
-## Current pipeline
-
-The notebook currently does the following:
-
-1. Loads the unified Q-CHAT training dataset from `data/raw/qchat/Autusim_DATA_Clean_Encoded.xlsx`.
-2. Loads the Polish test dataset from `data/raw/qchat/QCHAT_dataset2 mendeley.sav` when available.
-3. Trains two XGBoost models:
-   - behavioural model from the 10 Q-CHAT items
-   - demographic model from age and sex
-4. Combines the two models with late fusion.
-5. Recalibrates the decision threshold using the local DHS CSV at `data/raw/dhs/LSKR81FL.csv`.
-6. Runs a SADiLaR speech-corpus audit from `data/raw/SADiLaR/`.
-7. Acoustic Feature extraction
-8. Produces fairness and evaluation outputs under `outputs/`.
-9. Saves trained artifacts to `models/`.
-
-SHAP is treated as optional. If the local environment cannot import it cleanly, the notebook skips explainability instead of failing.
-
-## Repository layout
-
-```text
-.
-├── app/
-│   ├── app.py
-│   └── predictor.py
-├── data/
-│   ├── raw/
-│   │   ├── qchat/
-│   │   │   ├── Autusim_DATA_Clean_Encoded.xlsx
-│   │   │   └── QCHAT_dataset2 mendeley.sav
-│   │   ├── dhs/
-│   │   │   ├── LSKR81FL.csv
-│   │   │   ├── LSKR81FL.DTA
-│   │   │   ├── LSKR81FL.DCT
-│   │   │   ├── LSKR81FL.DO
-│   │   │   ├── LSKR81FL.FRQ
-│   │   │   ├── LSKR81FL.FRW
-│   │   │   ├── LSKR81FL.MAP
-│   │   │   └── LSKR81FL_v14.dta
-│   │   └── SADiLaR/
-│           ├── Sesotho sa Leboa - Orthographic Transcriptions/
-│           └── Sesotho sa Leboa Recordings/
-│   
-├── models/
-├── notebook/
-│   └── autism_screening_pipeline.ipynb
-├── outputs/
-│   ├── alignment/
-│   ├── evaluation/
-│   └── fairness/
-├── README.md
-└── requirements.txt
+```
+├── app.py                          # Streamlit application (UI)
+├── predictor.py                    # Model loading + inference logic
+├── requirements.txt                # Python dependencies
+├── autism_screening_pipeline.ipynb # Full training/evaluation notebook
+├── models/                         # Saved trained model artifacts
+│   ├── final_xgb_behavioural.joblib
+│   ├── final_lr_behavioural.joblib
+│   ├── final_blend_weight.joblib
+│   ├── final_prior_correction.joblib
+│   ├── final_threshold.joblib
+│   └── final_dhs_comorbidity_params.joblib
+├── data/raw/qchat/                 # Q-CHAT-10 training datasets
+├── data/raw/dhs/                   # Lesotho DHS 2023-24 microdata (KR, BR)
+└── outputs/
+    ├── evaluation/                 # Ablation study, benchmark comparison
+    └── fairness/                   # Subgroup fairness results
 ```
 
-## Data inventory
+---
 
-### Q-CHAT data
+## How to install and run (step by step)
 
-- `data/raw/qchat/Autusim_DATA_Clean_Encoded.xlsx`
-- `data/raw/qchat/QCHAT_dataset2 mendeley.sav`
+**1. Clone the repository**
 
-### DHS data
+```bash
+git clone <your-repo-url>
+cd <repo-folder>
+```
 
-The DHS folder contains the original export artifacts plus the converted CSV used by the notebook:
+**2. Create and activate a virtual environment**
 
-- `data/raw/dhs/LSKR81FL.csv`
-- `data/raw/dhs/LSKR81FL.DTA`
-- `data/raw/dhs/LSKR81FL.DCT`
-- `data/raw/dhs/LSKR81FL.DO`
-- `data/raw/dhs/LSKR81FL.FRQ`
-- `data/raw/dhs/LSKR81FL.FRW`
-- `data/raw/dhs/LSKR81FL.MAP`
-- `data/raw/dhs/LSKR81FL_v14.dta`
+```bash
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+```
 
-### SADiLaR speech corpus
-
-The SADiLaR folder contains paired speech transcripts and recordings in Sesotho sa Leboa:
-
-- `data/raw/SADiLaR/Sesotho sa Leboa - Orthographic Transcriptions/*.eaf`
-- `data/raw/SADiLaR/Sesotho sa Leboa Recordings/*.WAV`
-
-The notebook currently audits the local corpus and reports missing transcript/audio pairs before any downstream speech analysis.
-
-## Outputs already generated
-
-The repo already includes notebook outputs from recent runs:
-
-- `outputs/evaluation/eda_overview.png`
-- `outputs/evaluation/correlation_matrix.png`
-- `outputs/evaluation/qchat_heatmap.png`
-- `outputs/evaluation/roc_and_cm.png`
-- `outputs/fairness/subgroup_results.csv`
-- `outputs/fairness/fairness_f1.png`
-- `outputs/alignment/sadilar_manifest.csv`
-- `outputs/alignment/sadilar_audit.png`
-- `outputs/alignment/alignment_scores.csv`
-- `outputs/alignment/alignment_chart.png`
-
-## Trained models
-
-Saved model artifacts are already present in `models/`:
-
-- `models/xgb_behavioural.joblib`
-- `models/xgb_demographic.joblib`
-- `models/threshold.joblib`
-- `meta_model.joblib`
-  
-## Requirements
-
-Install dependencies with:
+**3. Install dependencies**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-The project currently depends on:
-
-- pandas
-- numpy
-- scikit-learn
-- xgboost
-- shap
-- librosa
-- imbalanced-learn
-- matplotlib
-- seaborn
-- pyreadstat
-- streamlit
-- joblib
-
-## Run the notebook
-
-Open the notebook in VS Code or Jupyter:
+**4. Run the app**
 
 ```bash
-jupyter notebook "notebook/autism_screening_pipeline .ipynb"
+streamlit run app.py
 ```
 
-Or open it directly in VS Code and run the cells in order.
+**5. Open in your browser**
 
-## Run the Streamlit app
+Streamlit will open automatically, or visit `http://localhost:8501`.
 
-```bash
-streamlit run app/app.py
-```
+---
 
-The app uses the saved models in `models/`. If the models are missing, it falls back to a demo mode rather than crashing.
+## Core functionality
 
-## Notes
+- **Screening tab:** answer 10 Q-CHAT-10 behavioural questions, get a
+  calibrated risk score, referral recommendation, and cultural interpretation
+  notes on speech-related items.
+- **Overview tab:** project summary, benchmark comparison chart against
+  published autism screening tools, capability comparison.
+- **About tab:** full methodology, data sources, and stated limitations.
+- **Fairness tab:** subgroup performance evaluation (age, sex).
 
-- The notebook uses the local DHS CSV first and only falls back to the local `.dta` if needed.
-- The local SADiLaR corpus is partially paired: 37 transcripts and 31 recordings, with 6 transcripts currently missing audio matches.
-- The project is a screening prototype, not a diagnostic device.
+---
 
-## License and ethics
+## Key technical contributions
 
-No license file is present in the repo. Treat the code and data as research material only, and follow the relevant data-use restrictions for DHS, Q-CHAT, and SADiLaR assets.
+1. **Behavioural ensemble** (XGBoost + Logistic Regression), CV-blended,
+   trained on Q-CHAT-10 items only — outperforms models that include weak
+   demographic signal (age/sex/jaundice/family history, AUROC ~0.61 alone).
+2. **Population-prevalence prior correction** (Saerens et al., 2002) —
+   rescales model output to match real-world ASD prevalence (~1%, Zeidan
+   et al., 2022) instead of the training data's enriched ~42% rate.
+3. **DHS comorbidity adjustment** — reweights Q-CHAT-10 items using real
+   Lesotho DHS 2023–24 stunting (50.1%) and anaemia (62.6%) prevalence
+   among children 18–36 months, since these conditions can mimic
+   autism-related behaviours on screening items.
+4. **Fairness evaluation** across sex and age subgroups.
+5. **Cultural alignment review** of speech-related items against the
+   SADiLaR Sesotho sa Leboa child speech corpus.
+
+---
+
+## Limitations
+
+This is a research prototype, not a diagnostic tool. It has not been
+validated with children or caregivers in Lesotho. The DHS comorbidity
+adjustment is a population-level correction only; an individual-level
+version was tested and found to underperform due to the absence of
+Lesotho data linking individual Q-CHAT-10 responses to health records.
