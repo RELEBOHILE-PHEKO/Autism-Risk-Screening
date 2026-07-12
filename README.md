@@ -12,7 +12,7 @@ benchmark (0.870) on the identical NZ+Saudi→Poland Q-CHAT-10 transfer setup.
 
 ## Links
 
-- **Deployed app:** <!-- PASTE STREAMLIT CLOUD URL HERE -->
+- **Deployed app:** https://autism-screening.streamlit.app/
 - **Demo video (5 min):** <!-- PASTE YOUTUBE/DRIVE LINK HERE -->
 
 ---
