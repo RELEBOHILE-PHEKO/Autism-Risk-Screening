@@ -7,12 +7,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 
-try:
-    import shap
-    SHAP_AVAILABLE = True
-except ImportError:
-    SHAP_AVAILABLE = False
-
 from predictor import get_predictor, QCHAT_ITEMS, RESPONSE_OPTIONS
 
 st.set_page_config(
@@ -258,18 +252,10 @@ def icon(name: str, size: int = 14, color: str = "currentColor") -> str:
 
 def render_sidebar():
     """
-    Collects only the inputs the loaded model can actually use.
-
-    Age / sex / jaundice / family ASD history are collected because the
-    legacy fallback model uses them -- but neither the "final" nor the
-    "deploy" model uses demographics at all (only Q-CHAT-10 responses,
-    possibly adjusted with a fixed Lesotho DHS population-level
-    correction -- "final" only, see below). We show that fact plainly
-    instead of presenting checkboxes that quietly do nothing to the score.
+    Age/sex/jaundice/family ASD history are collected for the parent's own
+    record, to hand to a clinician -- the deployed model doesn't use them.
+    Only the 10 Q-CHAT-10 answers feed the score.
     """
-    predictor = get_predictor()
-    summary = predictor.runtime_summary()
-
     st.sidebar.markdown("### About your child")
     st.sidebar.caption("A few quick details — mostly for your own records.")
     age_months = st.sidebar.slider("Age (months)", min_value=18, max_value=36, value=24)
@@ -277,34 +263,27 @@ def render_sidebar():
     jaundice    = st.sidebar.checkbox("Had jaundice as a newborn")
     family_asd  = st.sidebar.checkbox("A close family member is autistic")
 
-    if not summary["uses_demographics"]:
-        st.sidebar.caption(
-            "These details don't change the result below — the current model "
-            "looks only at the 10 questionnaire answers. We still keep them on "
-            "screen so you have a complete record to share with a clinician."
-        )
+    st.sidebar.caption(
+        "These details don't change the result below — the model looks "
+        "only at the 10 questionnaire answers. We still keep them on "
+        "screen so you have a complete record to share with a clinician."
+    )
 
     st.sidebar.divider()
     st.sidebar.markdown("### Local calibration")
     with st.sidebar.expander("How Lesotho health data shapes this tool", expanded=False):
-        if summary["uses_dhs_population_adjustment"]:
-            st.caption(
-                f"Two conditions common in young children here — stunted growth "
-                f"({summary['pop_stunting']:.1%} of children, Lesotho DHS 2023–24) "
-                f"and anaemia ({summary['pop_anaemia']:.1%}) — can look like "
-                f"autism traits on a few questionnaire items. We built that into "
-                f"the model as a one-time, population-wide correction, not a "
-                f"reading of this specific child's health. We tried a version "
-                f"tailored to each child, but no Lesotho dataset yet links "
-                f"questionnaire answers to individual health records, so it "
-                f"performed worse and wasn't used."
-            )
-        else:
-            st.caption(
-                "This version uses a Lesotho-informed decision threshold, but "
-                "not the extra item-by-item health adjustment described above — "
-                "that lives in a separate, more complete model bundle."
-            )
+        st.caption(
+            "The deployment threshold is calibrated to real-world autism "
+            "prevalence (Zeidan et al., 2022) and informed by Lesotho DHS "
+            "2023-24 indicators. During development we also tested "
+            "adjusting individual answers for stunting and anaemia, since "
+            "both are common in young children here and can resemble "
+            "autism traits on a few items. That adjustment was evaluated "
+            "carefully — population-wide and individual-level, cross-"
+            "validated — and didn't improve accuracy enough to justify "
+            "shipping it, so it isn't part of the score you get below. "
+            "See the About tab for the full comparison."
+        )
 
     return age_months, sex, jaundice, family_asd
 
@@ -346,9 +325,7 @@ def _risk_tier(prob: float):
     ASD prevalence is calibrated to ~1% (Zeidan et al., 2022), not the
     ~42% training-set prevalence. Raw probabilities cluster near 0 after
     correction, so cutoffs are set relative to the model's own decision
-    threshold rather than the old 0.35/0.60 scale, which assumed
-    uncorrected probabilities and would show nearly every child as "low
-    risk" regardless of actual status.
+    threshold rather than a fixed scale.
     """
     predictor = get_predictor()
     thr = getattr(predictor, "threshold", None) or 0.01
@@ -400,10 +377,10 @@ def render_gauge_svg(prob: float) -> str:
 
 def render_performance_chart():
     """
-    The bar chart Bernard actually asked for: this model's AUROC plotted
-    against published Q-CHAT-10 / autism-screening benchmarks, sourced
-    directly from outputs/evaluation/benchmark_comparison.csv (produced by
-    the notebook's benchmark comparison cell). Falls back gracefully if the
+    Bar chart of this model's AUROC against published Q-CHAT-10 /
+    autism-screening benchmarks, sourced from
+    outputs/evaluation/benchmark_comparison.csv (produced by the
+    notebook's benchmark comparison cell). Falls back gracefully if the
     file isn't present in the deployment bundle.
     """
     st.markdown("### How accurate is this, compared to other tools?")
@@ -525,16 +502,14 @@ def render_results(result: dict, responses: dict):
         "threshold line, not whether it's close to 50%."
     )
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     c1.metric("Overall result", _fmt_pct(prob))
     c2.metric("From behaviour answers", _fmt_pct(result.get("prob_behavioural", 0.0)))
-    dem = result.get("prob_demographic", None)
-    c3.metric("From child details", "Not used" if dem is None else _fmt_pct(dem))
 
     st.markdown(
         f'<div class="notice-box info">{icon("info", 15)} '
-        f'This result is based on your child\'s questionnaire answers, adjusted '
-        f'for health factors common in Lesotho.</div>',
+        f'This result is based only on your child\'s questionnaire answers, '
+        f'with the flag threshold calibrated for real-world autism prevalence.</div>',
         unsafe_allow_html=True,
     )
 
@@ -591,58 +566,33 @@ def render_overview():
 
     st.markdown('<div class="stripe-bar"></div>', unsafe_allow_html=True)
     st.markdown("### What this is")
-    dhs_line = (
-        "It scores your answers to the Q-CHAT-10 questionnaire, then applies a fixed, "
-        "population-wide correction based on how common stunting and anaemia are in "
-        "Lesotho — because those conditions can look similar to autism traits on a "
-        "few questions."
-        if info["uses_dhs_population_adjustment"]
-        else "It scores your answers to the Q-CHAT-10 questionnaire using a behavioural "
-        "model tuned to how common autism actually is here, rather than a lab's mix of cases."
-    )
     st.markdown(
-        f"""
+        """
 This is a short screening questionnaire, not a lab test or a diagnosis. It uses the same trained model built and evaluated during this project, so what you see here is exactly what was measured.
 
-{dhs_line} The goal is simple: help you decide, in two minutes, whether a longer conversation with a clinician is worth having sooner rather than later.
+It scores your answers to the Q-CHAT-10 questionnaire using a behavioural ensemble, then rescales the result to how common autism actually is here rather than a lab's mix of cases. The goal is simple: help you decide, in two minutes, whether a longer conversation with a clinician is worth having sooner rather than later.
 
-The model was trained on behavioural screening data from children in New Zealand, Saudi Arabia, and Poland, then adjusted using real Lesotho health survey data and reviewed for fairness across different groups of children, so it doesn't quietly work better for some families than others.
+The model was trained on behavioural screening data from children in New Zealand, Saudi Arabia, and Poland, then its flag threshold was calibrated using real Lesotho health survey data and reviewed for fairness across different groups of children, so it doesn't quietly work better for some families than others.
 
 **Worth remembering:** this tool cannot diagnose autism, and it isn't a substitute for a paediatrician, psychologist, or other qualified clinician. If anything here concerns you, please follow up with one.
         """
     )
 
     st.markdown("### At a glance")
-    what_this_does = (
-        "Reads your 10 answers, applies a Lesotho-specific health correction, scales the "
-        "result to real-world autism prevalence, and hands back a plain 'watch' or 'refer' "
-        "recommendation."
-        if info["uses_dhs_population_adjustment"]
-        else "Reads your 10 answers, scales the result to real-world autism prevalence, and "
-        "hands back a plain 'watch' or 'refer' recommendation."
-    )
     st.markdown(
-        f"""<div class="exec-grid"><div class="exec-card"><div class="exec-card-title">What it does</div>
-        <div class="exec-card-body">{what_this_does}</div></div>
+        """<div class="exec-grid"><div class="exec-card"><div class="exec-card-title">What it does</div>
+        <div class="exec-card-body">Reads your 10 answers, scales the result to real-world autism prevalence, and hands back a plain 'watch' or 'refer' recommendation.</div></div>
         <div class="exec-card"><div class="exec-card-title">Where the data comes from</div>
-        <div class="exec-card-body">Toddler screening data from three countries, tuned using Lesotho DHS health indicators and a review of local language and culture.</div></div>
+        <div class="exec-card-body">Toddler screening data from three countries, with the flag threshold tuned using Lesotho DHS health indicators and a review of local language and culture.</div></div>
         <div class="exec-card"><div class="exec-card-title">Who it's for</div>
         <div class="exec-card-body">Parents, caregivers, and front-line health workers who want a first read before booking a specialist.</div></div></div>""",
         unsafe_allow_html=True,
     )
 
     st.markdown("### Why it's built differently")
-    dhs_card_body = (
-        "The questionnaire is reweighted using Lesotho's 2023–24 stunting and anaemia rates, "
-        "since both can mimic autism-related behaviours on a screening form. It's a "
-        "population-wide adjustment, not a reading of your child's own health."
-        if info["uses_dhs_population_adjustment"]
-        else "The threshold and prevalence correction are informed by Lesotho DHS 2023–24 data. "
-        "This particular model version doesn't include the extra item-level health adjustment."
-    )
     st.markdown(
-        f"""<div class="unique-grid"><div class="unique-card"><span class="unique-num">Local fit</span><div class="unique-title">Calibrated for here, not just there</div><div class="unique-body">The result threshold is tuned to real-world autism rates (Zeidan et al., 2022) rather than borrowed wholesale from one overseas study.</div></div>
-        <div class="unique-card"><span class="unique-num">Health context</span><div class="unique-title">Accounts for common local health factors</div><div class="unique-body">{dhs_card_body}</div></div>
+        """<div class="unique-grid"><div class="unique-card"><span class="unique-num">Local fit</span><div class="unique-title">Calibrated for here, not just there</div><div class="unique-body">The result threshold is tuned to real-world autism rates (Zeidan et al., 2022) rather than borrowed wholesale from one overseas study.</div></div>
+        <div class="unique-card"><span class="unique-num">Health context</span><div class="unique-title">Tested against common local health factors</div><div class="unique-body">We tested adjusting scores for Lesotho's stunting and anaemia rates, since both can look like autism traits on a few questionnaire items. It didn't improve accuracy enough to ship, so the deployed model doesn't include it — see the About tab.</div></div>
         <div class="unique-card"><span class="unique-num">Fairness</span><div class="unique-title">Checked across groups of children</div><div class="unique-body">We measured whether the tool works as well for different ages and sexes, and say plainly where it doesn't.</div></div>
         <div class="unique-card"><span class="unique-num">Language</span><div class="unique-title">Aware of how questions land</div><div class="unique-body">Speech-related questions carry a note where language or culture could change how you'd answer.</div></div></div>""",
         unsafe_allow_html=True,
@@ -660,7 +610,7 @@ The model was trained on behavioural screening data from children in New Zealand
         <div class="safety-col cant"><div class="safety-head">{icon("cross", 14)} It can't</div>
         <div class="safety-item">• Diagnose autism</div>
         <div class="safety-item">• Replace a specialist's assessment</div>
-        <div class="safety-item">• Tailor the health adjustment to your specific child</div>
+        <div class="safety-item">• Adjust for your specific child's health history</div>
         <div class="safety-item">• Guarantee any particular outcome</div></div></div>""",
         unsafe_allow_html=True,
     )
@@ -677,28 +627,16 @@ The model was trained on behavioural screening data from children in New Zealand
 
 
 def render_about():
-    pred = get_predictor()
-    info = pred.runtime_summary()
-
     st.markdown("#### How it works, step by step")
     left, right = st.columns(2)
 
     with left:
-        if info["uses_dhs_population_adjustment"]:
-            steps = [
-                ("Step 1", "You answer the 10 Q-CHAT-10 questions"),
-                ("Step 2", "Your answers are reweighted using Lesotho's stunting/anaemia rates"),
-                ("Step 3", "A behavioural model scores the adjusted answers"),
-                ("Step 4", "The result is rescaled to match real-world autism rates (Zeidan et al., 2022)"),
-                ("Step 5", "You get a result, a recommendation, and notes on specific answers"),
-            ]
-        else:
-            steps = [
-                ("Step 1", "You answer the 10 Q-CHAT-10 questions"),
-                ("Step 2", "A behavioural model scores your answers"),
-                ("Step 3", "The result is rescaled to match real-world autism rates (Zeidan et al., 2022)"),
-                ("Step 4", "You get a result, a recommendation, and notes on specific answers"),
-            ]
+        steps = [
+            ("Step 1", "You answer the 10 Q-CHAT-10 questions"),
+            ("Step 2", "A behavioural ensemble (XGBoost + Logistic Regression) scores your answers"),
+            ("Step 3", "The result is rescaled to match real-world autism rates (Zeidan et al., 2022)"),
+            ("Step 4", "You get a result, a recommendation, and notes on specific answers"),
+        ]
         for num, text in steps:
             st.markdown(f"""
             <div class="step-card">
@@ -708,7 +646,7 @@ def render_about():
             """, unsafe_allow_html=True)
         st.caption(
             "Your child's age, sex, jaundice history, and family history are kept on "
-            "screen for your records, but the current model doesn't use them to score."
+            "screen for your records, but the model doesn't use them to score."
         )
 
     with right:
@@ -720,9 +658,9 @@ def render_about():
             ("Test data",
              "A separate Polish clinical dataset (Niedźwiecka et al., 2020) with 252 "
              "confirmed autism and typically-developing cases, never seen during training."),
-            ("Health adjustment & threshold",
+            ("Threshold calibration",
              "Lesotho Demographic and Health Survey 2023–24 (LSKR81DT) — population-wide "
-             "stunting and anaemia rates."),
+             "stunting and anaemia rates, and real-world autism prevalence."),
             ("Real-world prevalence",
              "A global pooled autism prevalence estimate (Zeidan et al., 2022), since the "
              "Lesotho DHS doesn't measure autism directly."),
@@ -741,17 +679,25 @@ def render_about():
             </div>
             """, unsafe_allow_html=True)
 
+    st.markdown("#### The comorbidity adjustment we tried, and didn't ship")
+    st.markdown("""
+    <div class="context-box">
+        Stunting and anaemia are common in young children in Lesotho, and both can look
+        like autism traits on a few Q-CHAT-10 items. We tested reweighting item scores
+        for this at two levels: a population-wide sensitivity test, and an individual-level
+        version cross-validated on held-out data. Neither improved AUROC enough to justify
+        the added complexity, so this deployed model scores Q-CHAT-10 answers alone. The
+        analysis is documented as a negative result rather than left out quietly.
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("#### Where this tool falls short")
     st.markdown("""
     <div class="limit-box">
         This is a screening tool, not a diagnosis — treat a "talk to a clinician" result as
         a nudge to follow up, not a verdict. It hasn't yet been tested directly with children
         or caregivers in Lesotho. The speech corpus used for language review is in Sesotho sa
-        Leboa, a close relative of Sesotho as spoken in Lesotho but not identical to it. The
-        health-condition adjustment, where switched on, is a population-wide correction only —
-        an individual version was tried during development but performed worse, since no
-        Lesotho dataset yet links questionnaire answers to a specific child's health records.
-        That's also why the app doesn't ask you for health details it can't yet use responsibly.
+        Leboa, a close relative of Sesotho as spoken in Lesotho but not identical to it.
     </div>
     """, unsafe_allow_html=True)
 

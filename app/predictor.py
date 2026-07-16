@@ -1,9 +1,10 @@
 import os
+import warnings
 import numpy as np
 import joblib
 import pandas as pd
 
-# Directory containing all trained model artifacts
+# Directory containing trained model artifacts and evaluation outputs
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "outputs", "evaluation")
 
@@ -21,8 +22,7 @@ QCHAT_ITEMS = [
     ("Q10", "Does your child stare at nothing with no apparent purpose?"),
 ]
 
-# Response encoding used during training (notebook cell 8):
-# Items Q1-Q9: atypical (=1) if score >= 2, i.e. "Sometimes/Rarely/Never"
+# Items 1-9: "Always"/"Usually" = typical (0), everything less frequent = atypical (1)
 RESPONSE_OPTIONS = {
     "Always":    0,
     "Usually":   0,
@@ -31,7 +31,7 @@ RESPONSE_OPTIONS = {
     "Never":     1,
 }
 
-# Item Q10 is reverse-scored: atypical (=1) if score <= 2, i.e. "Always/Usually/Sometimes"
+# Q10 is reverse-keyed: staring at nothing OFTEN is the atypical answer
 RESPONSE_OPTIONS_Q10 = {
     "Always":    1,
     "Usually":   1,
@@ -41,8 +41,6 @@ RESPONSE_OPTIONS_Q10 = {
 }
 
 REVERSE_ITEMS = {"Q10"}
-
-# Speech-related items scored against the SADiLaR acoustic corpus (notebook cell 62)
 SPEECH_ITEMS = {"Q1", "Q8", "Q9"}
 
 CULTURAL_NOTES = {
@@ -54,46 +52,31 @@ CULTURAL_NOTES = {
 
 class AutismPredictor:
     """
-    Loads whichever model bundle the notebook actually saved, in order of
-    completeness. The three bundles the notebook produces are NOT
-    interchangeable in what they use:
+    Loads the deploy_* bundle saved by the notebook (cell 38): a
+    cross-validated XGBoost + Logistic Regression behavioural ensemble,
+    blended with a CV-selected weight, Saerens prior-corrected to a ~1%
+    deployment prevalence (Zeidan et al., 2022).
 
-      final   (cell 56): XGB + LR behavioural ensemble, blended with a
-               cross-validated weight, Saerens prior-corrected to a ~1%
-               deployment prevalence (Zeidan et al., 2022), AND adjusted
-               using the population-level DHS comorbidity weighting
-               (ITEM_CONFOUND_WEIGHTS + Lesotho stunting/anaemia
-               prevalence). This is the notebook's own "FINAL COMBINED
-               MODEL" (cell 50/56) and the only bundle that ships a
-               dhs_comorbidity_params file.
-
-      deploy  (cell 38): the same XGB + LR ensemble + prior correction,
-               but saved BEFORE the DHS comorbidity step was added
-               (no dhs_comorbidity_params file is written here). If this
-               is the only bundle present, comorbidity adjustment must
-               NOT be applied -- there are no weights to apply.
-
-      legacy  (cell 73): the older XGB-behavioural + XGB-demographic +
-               logistic-regression fusion, thresholded with the basic
-               (non-enriched) DHS-calibrated threshold. This is the only
-               mode that uses age/sex/jaundice/family-history.
+    The notebook also tried a DHS stunting/anaemia comorbidity adjustment
+    (population-level and individual-level, cells 50-58) and a fairness
+    reweighting experiment (cell 79), but concluded neither improved
+    performance enough to ship -- see cells 56/64/81. Those experiments
+    are documented in outputs/, not loaded here.
     """
 
     def __init__(self):
         self.model_beh = None
         self.model_lr = None
-        self.model_dem = None
-        self.meta_model = None
 
         self.threshold = 0.5
         self.blend_weight = 1.0
         self.train_prior = None
         self.target_prior = None
-        self.dhs_params = {"item_weights": {}, "pop_stunting": 0.0, "pop_anaemia": 0.0}
 
         self.models_loaded = False
-        self.model_mode = "demo"  # final | deploy | legacy | demo
+        self.model_mode = "demo"  # deploy | demo
         self.reference_auroc = None
+        self.lr_fallback_triggered = False  # visible flag if the sigmoid fallback ever fires
 
         self._load_models()
         self._load_reference_metrics()
@@ -112,18 +95,20 @@ class AutismPredictor:
         except Exception:
             pass
 
-    def _load_bundle(self, prefix: str) -> bool:
-        # prefix: "final" or "deploy"
+    def _load_models(self):
         req = {
-            "xgb": f"{prefix}_xgb_behavioural.joblib",
-            "lr": f"{prefix}_lr_behavioural.joblib",
-            "w": f"{prefix}_blend_weight.joblib",
-            "prior": f"{prefix}_prior_correction.joblib",
-            "thr": f"{prefix}_threshold.joblib",
+            "xgb": "deploy_xgb_behavioural.joblib",
+            "lr": "deploy_lr_behavioural.joblib",
+            "w": "deploy_blend_weight.joblib",
+            "prior": "deploy_prior_correction.joblib",
+            "thr": "deploy_threshold.joblib",
         }
         paths = {k: os.path.join(MODEL_DIR, v) for k, v in req.items()}
+
         if not all(os.path.exists(p) for p in paths.values()):
-            return False
+            self.models_loaded = False
+            self.model_mode = "demo"
+            return
 
         self.model_beh = joblib.load(paths["xgb"])
         self.model_lr = joblib.load(paths["lr"])
@@ -133,37 +118,8 @@ class AutismPredictor:
         self.target_prior = float(prior["target_prior"])
         self.threshold = float(joblib.load(paths["thr"]))
 
-        # Only "final" (cell 56) ships this file. "deploy" (cell 38) does
-        # not -- leave dhs_params at its empty default so the comorbidity
-        # step is skipped rather than silently no-op'd.
-        dhs_fp = os.path.join(MODEL_DIR, f"{prefix}_dhs_comorbidity_params.joblib")
-        if os.path.exists(dhs_fp):
-            self.dhs_params = joblib.load(dhs_fp)
-        else:
-            self.dhs_params = {"item_weights": {}, "pop_stunting": 0.0, "pop_anaemia": 0.0}
-
         self.models_loaded = True
-        self.model_mode = prefix
-        return True
-
-    def _load_models(self):
-        try:
-            if self._load_bundle("final"):
-                return
-            if self._load_bundle("deploy"):
-                return
-
-            # Legacy fallback (cell 73 artifacts)
-            self.model_beh = joblib.load(os.path.join(MODEL_DIR, "xgb_behavioural.joblib"))
-            self.model_dem = joblib.load(os.path.join(MODEL_DIR, "xgb_demographic.joblib"))
-            self.meta_model = joblib.load(os.path.join(MODEL_DIR, "meta_model.joblib"))
-            self.threshold = float(joblib.load(os.path.join(MODEL_DIR, "threshold.joblib")))
-            self.models_loaded = True
-            self.model_mode = "legacy"
-
-        except FileNotFoundError:
-            self.models_loaded = False
-            self.model_mode = "demo"
+        self.model_mode = "deploy"
 
     @staticmethod
     def encode_responses(responses: dict) -> np.ndarray:
@@ -177,50 +133,34 @@ class AutismPredictor:
         return np.array(scores, dtype=float).reshape(1, -1)
 
     @staticmethod
-    def encode_demographics(age_months: int, sex: str,
-                            jaundice: bool = False, family_asd: bool = False) -> np.ndarray:
-        # Order matches DEM_COLS = ["age_years", "sex", "Jaundice", "Family_ASD"] (notebook cell 9)
-        return np.array([[
-            age_months / 12.0,
-            1 if sex == "Male" else 0,
-            1 if jaundice else 0,
-            1 if family_asd else 0,
-        ]], dtype=float)
-
-    @staticmethod
     def saerens_prior_correction(p: float, train_prior: float, target_prior: float) -> float:
         p = float(np.clip(p, 1e-6, 1 - 1e-6))
         num = p * (target_prior / train_prior)
         den = num + (1 - p) * ((1 - target_prior) / (1 - train_prior))
         return float(num / den)
 
-    def _has_dhs_adjustment(self) -> bool:
-        """True only when a real item-weight dict was loaded (final mode)."""
-        return bool(self.dhs_params.get("item_weights"))
-
-    def _apply_population_comorbidity_adjustment(self, X_beh: np.ndarray) -> np.ndarray:
-        # Matches notebook's comorbidity_adjusted_score() (cell 46), applied
-        # population-wide (cell 50) -- NOT the individual-level variant
-        # (comorbidity_adjusted_score_individual, cell 48), which the
-        # notebook tested and found underperformed (AUROC 0.822 vs 0.873)
-        # and has no Lesotho data linking individual health status to
-        # Q-CHAT-10 responses. Per-child stunting/anaemia flags must NOT be
-        # threaded in here without re-validating that individual-level path.
-        if not self._has_dhs_adjustment():
-            return X_beh
-
-        item_weights = self.dhs_params.get("item_weights", {})
-        p_stunting = float(self.dhs_params.get("pop_stunting", 0.0))
-        p_anaemia = float(self.dhs_params.get("pop_anaemia", 0.0))
-
-        X_adj = X_beh.astype(float).copy()
-        for i in range(X_adj.shape[1]):
-            item = f"Q{i+1}"
-            w = float(item_weights.get(item, 0.0))
-            risk_factor = w * (0.5 * p_stunting + 0.3 * p_anaemia)
-            adjustment = np.clip(risk_factor * 0.3, 0.0, w)
-            X_adj[0, i] = X_adj[0, i] * (1.0 - adjustment)
-        return X_adj
+    def _safe_lr_predict_proba(self, X: np.ndarray) -> float:
+        """
+        Tries the real sklearn predict_proba() first. Only falls back to a
+        hand-computed sigmoid if that call raises, and flags it visibly --
+        the fallback is never silent. A triggered fallback means the
+        environment that unpickled model_lr differs from the one that
+        pickled it (re-pin requirements.txt to the training env and
+        re-test; this is a symptom, not a fix).
+        """
+        try:
+            return float(self.model_lr.predict_proba(X)[0][1])
+        except Exception as e:
+            self.lr_fallback_triggered = True
+            warnings.warn(
+                f"model_lr.predict_proba() failed ({type(e).__name__}: {e}); "
+                f"falling back to manual sigmoid(coef_ . x + intercept_). "
+                f"This is a version-skew symptom -- pin scikit-learn in "
+                f"requirements.txt to match the training environment.",
+                RuntimeWarning,
+            )
+            z = X @ self.model_lr.coef_.T + self.model_lr.intercept_
+            return float(1.0 / (1.0 + np.exp(-z))[0][0])
 
     @staticmethod
     def get_cultural_notes(responses: dict) -> dict:
@@ -230,83 +170,51 @@ class AutismPredictor:
         }
 
     def runtime_summary(self) -> dict:
-        """Everything the UI needs to describe, honestly, what the loaded
-        model actually uses -- so app.py never has to guess or hardcode it."""
-        uses_demographics = self.model_mode == "legacy"
-        uses_dhs_population_adjustment = self._has_dhs_adjustment()
         return {
             "mode": self.model_mode,
             "threshold": float(self.threshold),
-            "blend_weight": float(self.blend_weight) if self.model_mode in {"final", "deploy"} else None,
+            "blend_weight": float(self.blend_weight) if self.models_loaded else None,
             "target_prior": self.target_prior,
             "reference_auroc": self.reference_auroc,
-            "uses_demographics": uses_demographics,
-            "uses_dhs_population_adjustment": uses_dhs_population_adjustment,
-            "pop_stunting": float(self.dhs_params.get("pop_stunting", 0.0)),
-            "pop_anaemia": float(self.dhs_params.get("pop_anaemia", 0.0)),
+            "lr_fallback_triggered": self.lr_fallback_triggered,
         }
 
     def predict(self, responses: dict, age_months: int, sex: str,
                 jaundice: bool = False, family_asd: bool = False) -> dict:
-        """
-        Only Q-CHAT-10 responses (and, in legacy mode only, age/sex/jaundice/
-        family history) feed the score. There is deliberately no per-child
-        stunting/anaemia/rural/etc. argument here: the DHS comorbidity
-        adjustment -- when present at all -- is a fixed population-level
-        correction (see _apply_population_comorbidity_adjustment), and
-        threading individual flags through would misrepresent what the
-        model actually does.
-        """
+        # age_months/sex/jaundice/family_asd are collected for the parent's
+        # own record only -- the deployed model scores Q-CHAT-10 answers
+        # alone, so they're accepted here but not used.
         X_beh = self.encode_responses(responses)
-        X_dem = self.encode_demographics(age_months, sex, jaundice, family_asd)
 
-        if self.models_loaded and self.model_mode in {"final", "deploy"}:
-            X_use = self._apply_population_comorbidity_adjustment(X_beh)
-            prob_beh = float(self.model_beh.predict_proba(X_use)[0][1])
-            prob_lr = float(self.model_lr.predict_proba(X_use)[0][1])
+        if self.models_loaded:
+            prob_beh = float(self.model_beh.predict_proba(X_beh)[0][1])
+            prob_lr = self._safe_lr_predict_proba(X_beh)
 
             prob_blend = float(self.blend_weight * prob_beh + (1.0 - self.blend_weight) * prob_lr)
             prob_cal = self.saerens_prior_correction(prob_blend, self.train_prior, self.target_prior)
-
-            prob_dem = np.nan
             prob_fused = prob_blend
 
-            if self._has_dhs_adjustment():
-                validation_note = (
-                    f"Using {self.model_mode} saved artifacts: behavioural ensemble "
-                    f"(XGBoost weight={self.blend_weight:.2f}) + prior correction + "
-                    f"fixed Lesotho DHS population-level comorbidity adjustment "
-                    f"(threshold={self.threshold:.4f}). Score is based on Q-CHAT-10 "
-                    f"responses only -- not this child's individual demographic or "
-                    f"health details."
-                )
-            else:
-                validation_note = (
-                    f"Using {self.model_mode} saved artifacts: behavioural ensemble "
-                    f"(XGBoost weight={self.blend_weight:.2f}) + prior correction "
-                    f"(threshold={self.threshold:.4f}). This bundle does not include "
-                    f"the DHS population comorbidity adjustment -- score is based on "
-                    f"Q-CHAT-10 responses only."
-                )
-
-        elif self.models_loaded and self.model_mode == "legacy":
-            prob_beh = float(self.model_beh.predict_proba(X_beh)[0][1])
-            prob_dem = float(self.model_dem.predict_proba(X_dem)[0][1])
-            X_meta = np.array([[prob_beh, prob_dem]])
-            prob_fused = float(self.meta_model.predict_proba(X_meta)[0][1])
-            prob_cal = prob_fused
-
             validation_note = (
-                "Using legacy saved artifacts: behavioural + demographic + fusion meta-model. "
-                "Score incorporates this child's age, sex, jaundice history, and family ASD history."
+                f"Behavioural ensemble (XGBoost weight={self.blend_weight:.2f}) + "
+                f"prior correction to ~{self.target_prior:.1%} deployment prevalence "
+                f"(threshold={self.threshold:.4f}). Score is based on Q-CHAT-10 "
+                f"responses only. A DHS stunting/anaemia comorbidity adjustment was "
+                f"tested during development at both the population and individual "
+                f"level but did not improve performance enough to justify shipping "
+                f"it, so it is not part of this model."
             )
+
+            if self.lr_fallback_triggered:
+                validation_note += (
+                    " [Note: the logistic-regression component used a manual "
+                    "fallback computation this run due to a model-loading "
+                    "issue -- see server logs.]"
+                )
 
         else:
             prob_beh = float(np.clip(X_beh.sum() / 10.0, 0.0, 1.0))
-            prob_dem = 0.30
-            prob_fused = (prob_beh + prob_dem) / 2.0
+            prob_fused = prob_beh
             prob_cal = prob_fused
-
             validation_note = "Models not found. Demo mode only -- score is illustrative, not calibrated."
 
         if self.reference_auroc is not None:
@@ -314,7 +222,7 @@ class AutismPredictor:
 
         return {
             "prob_behavioural": round(prob_beh, 4),
-            "prob_demographic": None if np.isnan(prob_dem) else round(float(prob_dem), 4),
+            "prob_demographic": None,
             "prob_fused": round(prob_fused, 4),
             "prob_calibrated": round(prob_cal, 4),
             "threshold": round(self.threshold, 4),
@@ -326,17 +234,16 @@ class AutismPredictor:
         }
 
 
-_instance: "AutismPredictor | None" = None
+_instance = None
 
 
-def get_predictor() -> AutismPredictor:
+def get_predictor() -> "AutismPredictor":
     global _instance
     if _instance is None:
         _instance = AutismPredictor()
     return _instance
 
 
-# Local test run
 if __name__ == "__main__":
     result = AutismPredictor().predict(
         responses={
