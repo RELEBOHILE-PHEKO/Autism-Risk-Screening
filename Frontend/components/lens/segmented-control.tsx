@@ -21,7 +21,7 @@ export function SegmentedControl({
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className="grid grid-cols-5 gap-1 rounded-xl border border-border bg-background/30 p-1"
+      className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-background/30 p-1 sm:grid-cols-5"
     >
       {options.map((opt, i) => {
         const selected = value === i
