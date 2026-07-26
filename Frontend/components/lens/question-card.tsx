@@ -17,7 +17,7 @@ export function QuestionCard({ question, index, value, onChange }: QuestionCardP
   return (
     <GlassCard
       className={cn(
-        'flex flex-col gap-4 p-5 transition-all duration-300',
+        'flex flex-col gap-4 p-4 transition-all duration-300 sm:p-5',
         answered && 'ring-1 ring-primary/30',
       )}
     >

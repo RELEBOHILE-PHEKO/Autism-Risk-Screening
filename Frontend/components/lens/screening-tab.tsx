@@ -127,8 +127,8 @@ export function ScreeningTab() {
         <ContextSidebar value={context} onChange={setContext} />
       </aside>
 
-      <div className="flex flex-col gap-6">
-        <div className="glass sticky top-4 z-10 flex items-center gap-4 rounded-2xl p-4">
+      <div className="flex flex-col gap-5">
+        <div className="glass sticky top-4 z-10 flex items-center gap-4 rounded-2xl p-4 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)]">
           <div className="flex-1">
             <div className="mb-2 flex items-center justify-between text-sm">
               <span className="font-medium text-foreground">Your answers</span>

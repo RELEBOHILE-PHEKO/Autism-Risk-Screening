@@ -22,9 +22,27 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Lesedi Lens — Early Childhood Screening',
+  title: 'Lesedi Lens',
   description:
-    'A calibrated Q-CHAT-10 behavioural screening tool for parents and caregivers in Lesotho to discuss early childhood development with a clinician.',
+    'Lesedi Lens is a calm, caregiver-friendly Q-CHAT-10 screening experience for early childhood development conversations in Lesotho.',
+  keywords: ['Lesedi Lens', 'autism screening', 'early childhood', 'Lesotho', 'Q-CHAT-10'],
+  alternates: {
+    canonical: 'https://lesedi-lens.vercel.app',
+  },
+  openGraph: {
+    title: 'Lesedi Lens',
+    description:
+      'A calm, caregiver-friendly Q-CHAT-10 screening experience for early childhood development conversations in Lesotho.',
+    url: 'https://lesedi-lens.vercel.app',
+    siteName: 'Lesedi Lens',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Lesedi Lens',
+    description:
+      'A calm, caregiver-friendly Q-CHAT-10 screening experience for early childhood development conversations in Lesotho.',
+  },
   generator: 'v0.app',
   icons: {
     icon: [
