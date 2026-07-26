@@ -1,0 +1,399 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-gold: var(--gold);
+  --color-clay: var(--clay);
+  --color-teal: var(--teal);
+  --color-risk-low: var(--risk-low);
+  --color-risk-mid: var(--risk-mid);
+  --color-risk-high: var(--risk-high);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+:root {
+  color-scheme: dark;
+
+  --background: #0f3145;
+  --foreground: #eaf3f5;
+
+  --card: #123c50;
+  --card-foreground: #eaf3f5;
+  --popover: #0f3145;
+  --popover-foreground: #eaf3f5;
+
+  --primary: #e2a33b;
+  --primary-foreground: #0f2632;
+
+  --secondary: #17485c;
+  --secondary-foreground: #eaf3f5;
+
+  --muted: #1a4a5e;
+  --muted-foreground: #a7c3cc;
+
+  --accent: #17485c;
+  --accent-foreground: #eaf3f5;
+
+  --destructive: #c1443a;
+
+  --border: color-mix(in srgb, #eaf3f5 14%, transparent);
+  --input: color-mix(in srgb, #eaf3f5 18%, transparent);
+  --ring: #e2a33b;
+
+  --gold: #e2a33b;
+  --clay: #c1573d;
+  --teal: #3aa6b5;
+
+  --risk-low: #2e8b57;
+  --risk-mid: #e2a33b;
+  --risk-high: #c1443a;
+
+  --chart-1: #e2a33b;
+  --chart-2: #3aa6b5;
+  --chart-3: #c1573d;
+  --chart-4: #6fb39c;
+  --chart-5: #8aa9b3;
+
+  --radius: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply bg-background;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    background-image:
+      radial-gradient(
+        60rem 40rem at 15% -10%,
+        color-mix(in srgb, var(--gold) 12%, transparent),
+        transparent
+      ),
+      radial-gradient(
+        55rem 40rem at 100% 10%,
+        color-mix(in srgb, var(--teal) 14%, transparent),
+        transparent
+      ),
+      linear-gradient(150deg, #0f3145 0%, #123c50 55%, #0e2c3d 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Signature Basotho striped accent bar */
+  .blanket-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--gold) 0,
+      var(--gold) 8px,
+      var(--clay) 8px,
+      var(--clay) 16px,
+      var(--teal) 16px,
+      var(--teal) 24px,
+      transparent 24px,
+      transparent 34px
+    );
+    background-size: 48px 100%;
+  }
+
+  /* Frosted glass surface */
+  .glass {
+    background: color-mix(in srgb, #eaf3f5 6%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid color-mix(in srgb, #eaf3f5 14%, transparent);
+    box-shadow:
+      0 1px 0 0 color-mix(in srgb, #ffffff 22%, transparent) inset,
+      0 18px 40px -20px rgba(0, 0, 0, 0.6),
+      0 8px 24px -18px rgba(0, 0, 0, 0.5);
+  }
+
+  .glass-strong {
+    background: color-mix(in srgb, #eaf3f5 9%, transparent);
+    backdrop-filter: blur(22px) saturate(150%);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    border: 1px solid color-mix(in srgb, #eaf3f5 18%, transparent);
+    box-shadow:
+      0 1px 0 0 color-mix(in srgb, #ffffff 28%, transparent) inset,
+      0 24px 60px -24px rgba(0, 0, 0, 0.7);
+  }
+}
+
+@utility glow-gold {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent),
+    0 0 30px -6px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+
+/* ============================================================
+   3D game-style animated background scene
+   ============================================================ */
+@layer components {
+  .scene-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    perspective: 380px;
+    perspective-origin: 50% 50%;
+  }
+
+  /* Receding neon-ish grid planes */
+  .scene-grid {
+    position: absolute;
+    left: -50%;
+    width: 200%;
+    height: 160%;
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in srgb, var(--teal) 55%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--gold) 40%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 64px 64px;
+    -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 72%);
+    mask-image: linear-gradient(to top, #000 0%, transparent 72%);
+    opacity: 0.35;
+    will-change: transform;
+  }
+
+  .scene-grid--floor {
+    bottom: -10%;
+    transform-origin: 50% 100%;
+    transform: rotateX(78deg);
+    animation: grid-scroll 7s linear infinite;
+  }
+
+  .scene-grid--ceiling {
+    top: -10%;
+    transform-origin: 50% 0%;
+    transform: rotateX(-78deg) scaleY(-1);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 72%);
+    mask-image: linear-gradient(to bottom, #000 0%, transparent 72%);
+    opacity: 0.22;
+    animation: grid-scroll 9s linear infinite;
+  }
+
+  @keyframes grid-scroll {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: 0 64px;
+    }
+  }
+
+  /* Glowing horizon band where the planes meet */
+  .scene-horizon {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 22vh;
+    transform: translateY(-50%);
+    background: radial-gradient(
+      60% 100% at 50% 50%,
+      color-mix(in srgb, var(--gold) 30%, transparent),
+      transparent 70%
+    );
+    filter: blur(8px);
+    opacity: 0.7;
+  }
+
+  /* Parallax floating motes for depth */
+  .scene-motes {
+    position: absolute;
+    inset: 0;
+  }
+
+  .mote {
+    position: absolute;
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle at 30% 30%,
+      color-mix(in srgb, var(--gold) 90%, white),
+      color-mix(in srgb, var(--clay) 70%, transparent)
+    );
+    box-shadow: 0 0 14px -2px color-mix(in srgb, var(--gold) 70%, transparent);
+    opacity: 0.5;
+    animation: mote-float linear infinite;
+  }
+
+  .mote-0 { left: 8%;  top: 22%; animation-duration: 13s; }
+  .mote-1 { left: 20%; top: 68%; width: 6px; height: 6px; animation-duration: 17s; }
+  .mote-2 { left: 34%; top: 40%; width: 14px; height: 14px; animation-duration: 20s; }
+  .mote-3 { left: 48%; top: 78%; animation-duration: 15s; }
+  .mote-4 { left: 63%; top: 30%; width: 7px; height: 7px; animation-duration: 18s; }
+  .mote-5 { left: 78%; top: 60%; width: 12px; height: 12px; animation-duration: 22s; }
+  .mote-6 { left: 90%; top: 36%; animation-duration: 14s; }
+
+  @keyframes mote-float {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    10%  { opacity: 0.55; }
+    50%  { transform: translateY(-40px) translateX(14px); opacity: 0.65; }
+    90%  { opacity: 0.4; }
+    100% { transform: translateY(-80px) translateX(-8px); opacity: 0; }
+  }
+
+  /* Vignette + top fade to keep UI readable */
+  .scene-vignette {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(
+        120% 80% at 50% 40%,
+        transparent 40%,
+        color-mix(in srgb, #0e2c3d 75%, transparent) 100%
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, #0f3145 55%, transparent) 0%,
+        transparent 30%
+      );
+  }
+
+  /* CRT-style scanlines overlay for a tech HUD feel */
+  .scene-scanlines {
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      color-mix(in srgb, #0e2c3d 22%, transparent) 0px,
+      color-mix(in srgb, #0e2c3d 22%, transparent) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scene-grid,
+    .mote {
+      animation: none !important;
+    }
+  }
+}
+
+/* ============================================================
+   Tech / HUD accents
+   ============================================================ */
+@layer components {
+  /* Monospace readout label */
+  .hud-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--teal) 85%, white);
+  }
+
+  /* Bracketed HUD corner frame (uses ::before/::after on a positioned parent) */
+  .hud-frame {
+    position: relative;
+  }
+  .hud-frame::before,
+  .hud-frame::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  .hud-frame::before {
+    top: 8px;
+    left: 8px;
+    border-top: 1.5px solid color-mix(in srgb, var(--gold) 70%, transparent);
+    border-left: 1.5px solid color-mix(in srgb, var(--gold) 70%, transparent);
+  }
+  .hud-frame::after {
+    bottom: 8px;
+    right: 8px;
+    border-bottom: 1.5px solid color-mix(in srgb, var(--gold) 70%, transparent);
+    border-right: 1.5px solid color-mix(in srgb, var(--gold) 70%, transparent);
+  }
+
+  /* Pulsing live status dot */
+  .hud-dot {
+    position: relative;
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: var(--teal);
+    box-shadow: 0 0 8px 1px color-mix(in srgb, var(--teal) 80%, transparent);
+  }
+  .hud-dot::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--teal) 60%, transparent);
+    animation: hud-ping 2s ease-out infinite;
+  }
+
+  @keyframes hud-ping {
+    0% { transform: scale(0.6); opacity: 0.9; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hud-dot::after {
+      animation: none !important;
+    }
+  }
+}

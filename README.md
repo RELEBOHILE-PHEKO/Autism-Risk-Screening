@@ -1,116 +1,129 @@
-# Autism Risk Screening — Lesotho-Calibrated
+# Autism Risk Screening — Lesedi Lens
 
-A caregiver-facing Q-CHAT-10 autism screening tool, built with a behavioural
-ensemble model (XGBoost + Logistic Regression), calibrated to real-world ASD
-prevalence, and adjusted using Lesotho DHS 2023–24 population health data
-(stunting and anaemia prevalence).
+Lesedi Lens is a caregiver-facing Q-CHAT-10 autism screening prototype for
+children aged 18–36 months. The current implementation follows the notebook's
+production pipeline: a behavioural XGBoost + logistic regression ensemble,
+calibrated with Saerens prior correction and deployed via a FastAPI backend.
 
-**Final model AUROC: 0.892** — beats the published Sollis et al. (2025)
-benchmark (0.870) on the identical NZ+Saudi→Poland Q-CHAT-10 transfer setup.
-
----
-
-## Links
-
-- **Deployed app:** https://autism-screening.streamlit.app/
-- **Demo video (5 min): https://youtu.be/OBL_Xl2qud8
+**Notebook-aligned deployment output:** AUROC 0.892 on the held-out deployment
+configuration, using the deploy_* model artifacts in the models folder.
 
 ---
 
-## What's in this repo
+## Repository layout
 
-```
-├── app.py                          # Streamlit application (UI)
-├── predictor.py                    # Model loading + inference logic
-├── requirements.txt                # Python dependencies
-├── autism_screening_pipeline.ipynb # Full training/evaluation notebook
-├── models/                         # Saved trained model artifacts
-│   ├── final_xgb_behavioural.joblib
-│   ├── final_lr_behavioural.joblib
-│   ├── final_blend_weight.joblib
-│   ├── final_prior_correction.joblib
-│   ├── final_threshold.joblib
-│   └── final_dhs_comorbidity_params.joblib
-├── data/raw/qchat/                 # Q-CHAT-10 training datasets
-├── data/raw/dhs/                   # Lesotho DHS 2023-24 microdata (KR, BR)
-└── outputs/
-    ├── evaluation/                 # Ablation study, benchmark comparison
-    └── fairness/                   # Subgroup fairness results
+```text
+backend/                  # FastAPI inference service
+  api.py                  # Loads the deploy_* model artifacts and serves /predict
+  requirements.txt
+Frontend/                 # Next.js user interface
+  app/                    # Pages and global layout
+  components/             # Lens UI modules and cards
+  lib/                    # API client and shared helpers
+  package.json
+models/                   # Notebook-trained deployment artifacts
+  deploy_xgb_behavioural.joblib
+  deploy_lr_behavioural.joblib
+  deploy_blend_weight.joblib
+  deploy_prior_correction.joblib
+  deploy_threshold.joblib
+notebook/                  # Training and evaluation notebook
+  Autism_Screening_pipeline.ipynb
+outputs/                  # Evaluation, fairness, and alignment exports
+requirements.txt          # Python dependencies for the notebook + backend runtime
 ```
 
 ---
 
-## How to install and run (step by step)
+## What matches the notebook
 
-**1. Clone the repository**
+The current app is aligned with the notebook's production configuration:
 
-```bash
-git clone <your-repo-url>
-cd <repo-folder>
-```
+- The backend loads the notebook's deploy_* artifacts from the models folder.
+- The prediction logic uses the same blend-weight ensemble and Saerens
+  prior-correction step described in the notebook.
+- The frontend displays the deployment-oriented metrics and thresholds that
+  correspond to the notebook's reported AUROC of 0.892.
 
-**2. Create and activate a virtual environment**
+If you need to reproduce the notebook environment, the Python dependencies in
+requirements.txt are the relevant starting point.
+
+---
+
+## Local setup
+
+### 1. Create and activate a Python environment
 
 ```bash
 python -m venv .venv
-# Windows:
 .venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
 ```
 
-**3. Install dependencies**
+### 2. Install Python dependencies
 
 ```bash
 pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
-**4. Run the app**
+### 3. Install frontend dependencies
 
 ```bash
-streamlit run app.py
+cd Frontend
+npm install
 ```
 
-**5. Open in your browser**
+---
 
-Streamlit will open automatically, or visit `http://localhost:8501`.
+## Run the app locally
+
+Open two terminals.
+
+### Terminal 1 — backend API
+
+```bash
+cd <repo-folder>
+.venv\Scripts\activate
+python -m uvicorn backend.api:app --host 127.0.0.1 --port 8000
+```
+
+The API health check is available at:
+
+```text
+http://127.0.0.1:8000/health
+```
+
+### Terminal 2 — frontend UI
+
+```bash
+cd <repo-folder>\Frontend
+npm run dev -- --hostname 127.0.0.1 --port 3000
+```
+
+Open:
+
+```text
+http://127.0.0.1:3000
+```
+
+If you need to point the frontend at a different backend URL, create a local
+environment file in Frontend and set NEXT_PUBLIC_API_URL.
 
 ---
 
-## Core functionality
+## Project capabilities
 
-- **Screening tab:** answer 10 Q-CHAT-10 behavioural questions, get a
-  calibrated risk score, referral recommendation, and cultural interpretation
-  notes on speech-related items.
-- **Overview tab:** project summary, benchmark comparison chart against
-  published autism screening tools, capability comparison.
-- **About tab:** full methodology, data sources, and stated limitations.
-- **Fairness tab:** subgroup performance evaluation (age, sex).
-
----
-
-## Key technical contributions
-
-1. **Behavioural ensemble** (XGBoost + Logistic Regression), CV-blended,
-   trained on Q-CHAT-10 items only — outperforms models that include weak
-   demographic signal (age/sex/jaundice/family history, AUROC ~0.61 alone).
-2. **Population-prevalence prior correction** (Saerens et al., 2002) —
-   rescales model output to match real-world ASD prevalence (~1%, Zeidan
-   et al., 2022) instead of the training data's enriched ~42% rate.
-3. **DHS comorbidity adjustment** — reweights Q-CHAT-10 items using real
-   Lesotho DHS 2023–24 stunting (50.1%) and anaemia (62.6%) prevalence
-   among children 18–36 months, since these conditions can mimic
-   autism-related behaviours on screening items.
-4. **Fairness evaluation** across sex and age subgroups.
-5. **Cultural alignment review** of speech-related items against the
-   SADiLaR Sesotho sa Leboa child speech corpus.
+- Screening tab: answer the 10 Q-CHAT-10 questions and receive a calibrated
+  risk result plus a clinician-friendly summary.
+- Overview tab: high-level project summary, benchmark comparison, and feature
+  highlights.
+- About tab: methodology, data sources, and stated limitations.
+- Fairness tab: subgroup audit views for age and sex.
 
 ---
 
-## Limitations
+## Notes and limitations
 
-This is a research prototype, not a diagnostic tool. It has not been
-validated with children or caregivers in Lesotho. The DHS comorbidity
-adjustment is a population-level correction only; an individual-level
-version was tested and found to underperform due to the absence of
-Lesotho data linking individual Q-CHAT-10 responses to health records.
+This is a research prototype, not a diagnostic tool. It is intended for
+educational and planning purposes and should be reviewed by qualified clinical
+or public-health stakeholders before any field deployment.
