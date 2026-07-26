@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { BarChart3, ClipboardCheck, Info, Scale } from 'lucide-react'
+import { BarChart3, ClipboardCheck, Info, Scale, ScrollText } from 'lucide-react'
 import { AppHeader } from '@/components/lens/app-header'
 import { SceneBackground } from '@/components/lens/scene-background'
 import { OverviewTab } from '@/components/lens/overview-tab'
 import { ScreeningTab } from '@/components/lens/screening-tab'
 import { AboutTab } from '@/components/lens/about-tab'
 import { FairnessTab } from '@/components/lens/fairness-tab'
+import { PrivacyTab } from '@/components/lens/privacy-tab'
 import { cn } from '@/lib/utils'
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { id: 'screening', label: 'Screening', icon: ClipboardCheck, hint: 'Q-CHAT-10 checklist' },
   { id: 'about', label: 'About', icon: Info, hint: 'How it works' },
   { id: 'fairness', label: 'Fairness', icon: Scale, hint: 'Subgroup equity' },
+  { id: 'privacy', label: 'Privacy', icon: ScrollText, hint: 'Terms & data use' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -119,6 +121,7 @@ export default function Page() {
             {tab === 'screening' && <ScreeningTab />}
             {tab === 'about' && <AboutTab />}
             {tab === 'fairness' && <FairnessTab />}
+            {tab === 'privacy' && <PrivacyTab />}
           </div>
         </div>
       </main>
