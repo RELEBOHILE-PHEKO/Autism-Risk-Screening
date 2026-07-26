@@ -112,6 +112,40 @@ environment file in Frontend and set NEXT_PUBLIC_API_URL.
 
 ---
 
+## Deploy to Vercel and Render
+
+### Frontend on Vercel
+
+1. Push this repository to GitHub.
+2. In Vercel, click New Project and import the repository.
+3. Set the Vercel Root Directory to Frontend.
+4. Vercel will detect the Next.js app automatically.
+5. Add this environment variable in Vercel:
+
+```text
+NEXT_PUBLIC_API_URL=https://your-render-service-name.onrender.com
+```
+
+6. Deploy the project.
+
+### Backend on Render
+
+1. In Render, create a New Web Service from the same GitHub repository.
+2. Choose the repository and keep the root directory as the repo root.
+3. Use these settings:
+
+```text
+Build Command: pip install -r backend/requirements.txt
+Start Command: uvicorn backend.api:app --host 0.0.0.0 --port $PORT
+```
+
+4. Deploy the service.
+5. Copy the Render URL and paste it into the Vercel environment variable above.
+
+This setup keeps the UI on Vercel and the FastAPI prediction service on Render.
+
+---
+
 ## Project capabilities
 
 - Screening tab: answer the 10 Q-CHAT-10 questions and receive a calibrated
