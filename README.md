@@ -1,7 +1,7 @@
 # Cross-Dataset Evaluation of Machine-Learning Autism Risk Screening with Fairness Analysis for a Lesotho Context
  ## Lesedi Lens 
 
- app url :https://lesedi-lensvercelapp-rust.vercel.app/
+ app url : https://lesedi-lensvercelapp-rust.vercel.app/
  
 
  demo video : https://youtu.be/lZQlUJxvguA
