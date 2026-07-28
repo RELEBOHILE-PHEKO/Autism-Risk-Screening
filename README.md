@@ -2,9 +2,12 @@
  ## Lesedi Lens 
 
  app url :https://lesedi-lensvercelapp-rust.vercel.app/
+ 
+
+ demo video : https://youtu.be/lZQlUJxvguA
 
  
- demo video: 
+
 
 Lesedi Lens is a caregiver-facing Q-CHAT-10 autism screening prototype for
 children aged 18–36 months. The current implementation follows the notebook's
