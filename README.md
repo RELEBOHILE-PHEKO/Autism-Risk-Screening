@@ -1,10 +1,15 @@
 # Cross-Dataset Evaluation of Machine-Learning Autism Risk Screening with Fairness Analysis for a Lesotho Context
  ## Lesedi Lens 
 
- app url :https://lesedi-lensvercelapp-rust.vercel.app/
+ app url : https://lesedi-lensvercelapp-rust.vercel.app/
+ 
+ backend url: https://autism-risk-screening.onrender.com/
+ 
+
+ demo video : https://youtu.be/lZQlUJxvguA
 
  
- demo video: 
+
 
 Lesedi Lens is a caregiver-facing Q-CHAT-10 autism screening prototype for
 children aged 18–36 months. The current implementation follows the notebook's
