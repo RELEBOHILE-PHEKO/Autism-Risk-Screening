@@ -1,0 +1,9 @@
+age,domain,milestone,qchat_item,qchat_question
+18 months,Communication,Uses at least 3 words other than names,Q8,Would you describe your child's first words as typical?
+18 months,Communication,Understands names of at least 2 common objects,Q1,Does your child look at you when you call his/her name?
+18 months,Cognitive,Follows simple commands,Q6,Does your child follow where you're looking?
+18 months,Communication,Uses simple gestures,Q9,Does your child use simple gestures (e.g. wave goodbye)?
+3 years,Cognitive,Uses pretend play (e.g. feeds doll),Q5,"Does your child pretend (e.g. care for dolls, talk on a phone)?"
+3 years,Social,Plays with other children and adults,Q7,"If someone is upset, does your child show signs of wanting to comfort them?"
+18 months,Risk factor,Stunting/malnutrition increases developmental risk,DHS,Stunting indicator used in threshold calibration
+18 months,Risk factor,Iron deficiency anaemia increases developmental risk,DHS,Anaemia indicator used in threshold calibration
